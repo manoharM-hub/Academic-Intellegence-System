@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Academic Intelligence System — Login</title>
+<link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body class="login-page">
+
+<div class="login-wrapper">
+  <div class="login-card">
+
+    <div class="login-logo">
+      <div class="emblem">🎓</div>
+      <h1>Academic Intelligence<br>System</h1>
+      <p>Secure Portal Access</p>
+    </div>
+
+    <div class="roleButtons" id="roleButtons">
+      <button onclick="selectRole('student')" class="active">Student</button>
+      <button onclick="selectRole('mentor')">Mentor</button>
+      <button onclick="selectRole('parent')">Parent</button>
+    </div>
+
+    <div id="note">🎓 Login as Student — Use your VTU ID &amp; DOB as Password</div>
+
+    <div class="input-group">
+      <input id="id" placeholder="Enter your ID" autocomplete="off">
+    </div>
+
+    <div class="input-group">
+      <input id="password" type="password" placeholder="Enter Password">
+    </div>
+
+    <button class="loginBtn" onclick="login()">Sign In →</button>
+
+    <div id="msg"></div>
+
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

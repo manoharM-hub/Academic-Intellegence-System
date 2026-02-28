@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Mentor Dashboard — AIS</title>
+<link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-icon">🎓</div>
+    <div>
+      <div class="brand-name">Academic Intelligence System</div>
+      <div class="brand-sub">Mentor Portal</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="headerMentorName" style="color:var(--slate-light);font-size:14px;font-weight:500"></span>
+    <button class="btn-logout" onclick="logout()">Log Out</button>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="dashboard-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-welcome" id="welcomeText">
+      <div class="s-name">Loading...</div>
+    </div>
+
+    <button class="sidebar-btn" onclick="loadStudents()">👥 Your Mentees</button>
+    <button class="sidebar-btn" onclick="loadReports()">📈 Performance Reports</button>
+    <button class="sidebar-btn" onclick="loadResumes()">📄 View Resumes</button>
+    <button class="sidebar-btn" onclick="loadComplaints()">📝 Add Complaint</button>
+    <button class="sidebar-btn chat-btn" onclick="chatParent()">💬 Chat with Parent</button>
+  </aside>
+
+  <!-- CONTENT -->
+  <main class="content-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="page-title" id="pageTitle">Your Mentees</div>
+      <div id="pageTitleBtn"></div>
+    </div>
+    <div id="studentList"></div>
+  </main>
+
+</div>
+
+
+<script>
+
+const mentorId = localStorage.getItem("mentorId");
+const mentorName = localStorage.getItem("mentorName");
+const mentorDesignation = localStorage.getItem("mentorDesignation");
+const mentorDepartment = localStorage.getItem("mentorDepartment");
+
+if(!mentorId){ alert("Login first"); window.location="login.html"; }
+
+document.getElementById("headerMentorName").textContent = mentorName;
+
+document.getElementById("welcomeText").innerHTML = `
+  <div class="s-role">Mentor</div>
+  <div class="s-name">${mentorName}</div>
+  <div class="s-dept">${mentorDesignation}<br>${mentorDepartment} Dept.</div>
+`;
+
+loadStudents();
+
+/* ===== MENTEES ===== */
+function loadStudents(){
+  document.getElementById("pageTitle").innerText = "Your Mentees";
+  document.getElementById("pageTitleBtn").innerHTML = "";
+
+  fetch("http://localhost:3000/mentor/"+mentorId+"/students")
+  .then(res=>res.json())
+  .then(list=>{
+    if(!list.length){
+      document.getElementById("studentList").innerHTML = "<p style='color:var(--slate)'>No students assigned.</p>";
+      return;
+    }
+
+    let html = "";
+    list.forEach(s=>{
+      html += `
+        <div class="student-card" onclick="toggleDetails('${s.id}', this)">
+          <div class="s-info">
+            <div class="s-id">${s.id}</div>
+            <div class="s-name-text">${s.name}</div>
+          </div>
+          <span class="chevron">›</span>
+        </div>
+
+        <div id="details_${s.id}" class="student-details">
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+            <select onchange="loadSemester('${s.id}',this.value)" style="min-width:180px">
+              <option value="">Select Semester</option>
+              ${[1,2,3,4,5,6,7,8].map(i=>`<option value="${i}">Semester ${i}</option>`).join('')}
+            </select>
+            <button onclick="openStudent('${s.id}')" style="padding:10px 20px;background:var(--navy);color:var(--gold);border:1px solid rgba(201,168,76,0.3);border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600">
+              View Full Profile →
+            </button>
+          </div>
+
+          <div id="marks_${s.id}"></div>
+
+          <div class="pie-container">
+            <canvas id="pie_${s.id}"></canvas>
+          </div>
+        </div>
+      `;
+    });
+
+    document.getElementById("studentList").innerHTML = html;
+  });
+}
+
+function toggleDetails(id, card){
+  const div = document.getElementById("details_"+id);
+  const chevron = card.querySelector('.chevron');
+  const isOpen = div.style.display === "block";
+  div.style.display = isOpen ? "none" : "block";
+  chevron.style.transform = isOpen ? "" : "rotate(90deg)";
+  chevron.style.color = isOpen ? "" : "var(--gold)";
+}
+
+/* ===== SEMESTER PIE ===== */
+async function loadSemester(studentId, sem){
+  if(!sem) return;
+
+  const container = document.getElementById("details_"+studentId);
+  const marksDiv = document.getElementById("marks_"+studentId);
+  const canvas = document.getElementById("pie_"+studentId);
+
+  const data = await fetch(`http://localhost:3000/results/${studentId}/${sem}`).then(r=>r.json());
+
+  let html = `<div style="margin-bottom:12px">`;
+  data.forEach(r=>{
+    html += `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eef0f5;font-size:14px">
+      <span style="color:var(--navy)">${r.course_name}</span>
+      <span class="grade-badge grade-${r.grade}">${r.grade}</span>
+    </div>`;
+  });
+  html += "</div>";
+  marksDiv.innerHTML = html;
+
+  let totalPoints = 0;
+  data.forEach(r=>{
+    switch(r.grade){
+      case "S": totalPoints+=10; break; case "A": totalPoints+=9; break;
+      case "B": totalPoints+=8; break; case "C": totalPoints+=7; break;
+      case "D": totalPoints+=6; break;
+    }
+  });
+
+  const gpa = totalPoints / data.length;
+  const percentage = Math.round((gpa/10)*100);
+
+  if(canvas.chart) canvas.chart.destroy();
+
+  const centerText = {
+    id:'centerText',
+    beforeDraw(chart){
+      const {width,height,ctx} = chart;
+      ctx.restore();
+      ctx.font = "bold 24px 'DM Sans'";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#0a1628";
+      ctx.fillText(percentage+"%", width/2, height/2-6);
+      ctx.font = "12px 'DM Sans'";
+      ctx.fillStyle = "#8892a4";
+      ctx.fillText("Sem Score", width/2, height/2+14);
+      ctx.save();
+    }
+  };
+
+  canvas.chart = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels: ["Score","Remaining"],
+      datasets:[{ data:[percentage,100-percentage], backgroundColor:["#c9a84c","#eef0f8"], borderWidth:0 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, cutout:"72%", plugins:{legend:{display:false}} },
+    plugins: [centerText]
+  });
+}
+
+/* ===== PERFORMANCE REPORTS ===== */
+async function loadReports(){
+  document.getElementById("pageTitle").innerText = "Performance Reports";
+  document.getElementById("pageTitleBtn").innerHTML = "";
+
+  const students = await fetch("http://localhost:3000/mentor/"+mentorId+"/students").then(r=>r.json());
+
+  let html = "";
+  students.forEach(s=>{
+    html += `<div class="report-card">
+      <div class="r-name">${s.name} <span style="font-size:13px;color:var(--slate);font-family:'DM Sans',sans-serif;font-weight:400">${s.id}</span></div>
+      <canvas id="bar_${s.id}" height="100"></canvas>
+    </div>`;
+  });
+
+  document.getElementById("studentList").innerHTML = html;
+
+  for(const s of students){
+    let semLabels = [], semMarks = [];
+    for(let i=1;i<=8;i++){
+      const data = await fetch(`http://localhost:3000/results/${s.id}/${i}`).then(r=>r.json());
+      if(data.length>0){
+        semLabels.push("Sem "+i);
+        let total = 0;
+        data.forEach(r=>{ switch(r.grade){ case"S":total+=10;break;case"A":total+=9;break;case"B":total+=8;break;case"C":total+=7;break;case"D":total+=6;break; } });
+        semMarks.push(Math.round((total/data.length/10)*100));
+      }
+    }
+
+    new Chart(document.getElementById("bar_"+s.id), {
+      type: "bar",
+      data: {
+        labels: semLabels,
+        datasets:[{
+          data: semMarks,
+          backgroundColor: semMarks.map(v => v>=80?"rgba(201,168,76,0.8)":v>=60?"rgba(29,52,97,0.7)":"rgba(231,76,60,0.7)"),
+          borderRadius: 6,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        plugins:{ legend:{display:false} },
+        scales:{
+          y:{ beginAtZero:true, max:100, grid:{color:"rgba(0,0,0,0.05)"}, ticks:{color:"#8892a4",font:{size:12}} },
+          x:{ grid:{display:false}, ticks:{color:"#8892a4",font:{size:12}} }
+        }
+      }
+    });
+  }
+}
+
+function loadResumes(){
+  document.getElementById("pageTitle").innerText = "View Resumes";
+  document.getElementById("pageTitleBtn").innerHTML = "";
+  document.getElementById("studentList").innerHTML = `
+    <div style="
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:80px 40px;text-align:center;
+      background:var(--white);border-radius:var(--radius);
+      border:2px dashed #e0e4ef;box-shadow:var(--shadow-sm)
+    ">
+      <div style="font-size:56px;margin-bottom:20px">📄</div>
+      <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--navy);margin-bottom:10px">
+        Resume Portal
+      </div>
+      <div style="font-size:14px;color:var(--slate);max-width:340px;line-height:1.7">
+        Resume uploads and viewing will be available in a future update. 
+        Students will be able to upload their resumes for mentor review.
+      </div>
+      <div style="
+        margin-top:24px;padding:10px 24px;
+        background:var(--gold-pale);border-radius:40px;
+        font-size:13px;font-weight:600;color:var(--navy);
+        border:1px solid rgba(201,168,76,0.3)
+      ">🚧 Coming Soon</div>
+    </div>
+  `;
+}
+
+function loadComplaints(){
+  document.getElementById("pageTitle").innerText = "Add Complaint";
+  document.getElementById("pageTitleBtn").innerHTML = `
+    <button onclick="togglePastComplaints()" id="pastBtn" style="
+      padding:9px 20px;
+      background:transparent;
+      border:1.5px solid var(--gold);border-radius:40px;
+      color:var(--navy);font-family:'DM Sans',sans-serif;
+      font-size:13px;font-weight:600;cursor:pointer;
+      transition:var(--transition);">
+      📋 View Past Complaints
+    </button>`;
+
+  // First fetch mentees list to populate student selector
+  fetch("http://localhost:3000/mentor/" + mentorId + "/students")
+  .then(res => res.json())
+  .then(list => {
+
+    let options = '<option value="">-- Select Student --</option>';
+    list.forEach(s => {
+      options += `<option value="${s.id}">${s.id} — ${s.name}</option>`;
+    });
+
+    document.getElementById("studentList").innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+        <!-- LEFT: Register -->
+        <div style="background:var(--white);border-radius:var(--radius);padding:26px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm)">
+          <h3 style="font-family:'Playfair Display',serif;font-size:17px;color:var(--navy);margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--gold)">📝 Register a Complaint</h3>
+
+          <div style="margin-bottom:16px">
+            <label style="font-size:12px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:8px">Select Student</label>
+            <select id="complaintStudent" onchange="onStudentSelect()" style="width:100%;padding:11px 14px;border:1px solid #e0e4ef;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--navy);background:#f8f9fc;outline:none">
+              ${options}
+            </select>
+          </div>
+
+          <div id="complaintForm" style="display:none">
+            <div style="margin-bottom:16px">
+              <label style="font-size:12px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:8px">Complaint Type</label>
+              <select id="complaintType" style="width:100%;padding:11px 14px;border:1px solid #e0e4ef;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--navy);background:#f8f9fc;outline:none">
+                <option value="">-- Select Type --</option>
+                <option value="Attendance">Attendance Issue</option>
+                <option value="Academic">Academic Performance</option>
+                <option value="Behaviour">Behaviour / Discipline</option>
+                <option value="Assignment">Assignment / Submission</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div style="margin-bottom:16px">
+              <label style="font-size:12px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:8px">Complaint Details</label>
+              <textarea id="complaintText" rows="6" placeholder="Describe the complaint in detail..." style="width:100%;padding:12px 14px;border:1px solid #e0e4ef;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--navy);background:#f8f9fc;outline:none;resize:vertical;box-sizing:border-box"></textarea>
+            </div>
+            <button onclick="submitComplaint()" style="padding:12px 28px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border:none;border-radius:40px;color:var(--navy);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(201,168,76,0.35);">
+              Submit Complaint →
+            </button>
+            <div id="complaintMsg" style="margin-top:12px;font-size:13px;font-weight:500"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Past Complaints -->
+        <div style="background:var(--white);border-radius:var(--radius);padding:26px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm);max-height:520px;overflow-y:auto">
+          <h3 style="font-family:'Playfair Display',serif;font-size:17px;color:var(--navy);margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--gold)">📋 Past Complaints</h3>
+          <div id="pastComplaintsList"><p style="color:var(--slate);font-size:13px;text-align:center;padding:40px 0;opacity:0.6">Loading...</p></div>
+        </div>
+
+      </div>
+    `;
+    loadAllPastComplaints();
+  });
+}
+
+function loadAllPastComplaints(){
+  document.getElementById("pastComplaintsList").innerHTML = "<p style='color:var(--slate);font-size:13px;text-align:center;padding:40px 0;opacity:0.6'>Loading...</p>";
+
+  fetch("http://localhost:3000/mentor/" + mentorId + "/students")
+  .then(res => res.json())
+  .then(students => {
+    const promises = students.map(s =>
+      fetch("http://localhost:3000/parent-messages/" + s.id).then(r => r.json())
+    );
+    return Promise.all(promises);
+  })
+  .then(allMsgs => {
+    const complaints = allMsgs.flat().filter(m =>
+      m.subject && m.subject.toLowerCase().includes('complaint') &&
+      m.sender_role === 'mentor' &&
+      m.mentor_id === mentorId
+    ).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+
+    if(!complaints.length){
+      document.getElementById("pastComplaintsList").innerHTML = `
+        <div style="text-align:center;padding:40px 0;opacity:0.5">
+          <div style="font-size:40px">📭</div>
+          <div style="font-size:13px;color:var(--slate);margin-top:10px">No complaints filed yet</div>
+        </div>`;
+      return;
+    }
+
+    let html = "";
+    complaints.forEach(m => {
+      const time = new Date(m.created_at).toLocaleString();
+      html += `
+        <div style="background:#f8f9fc;border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:12px;border:1px solid #e0e4ef;border-left:4px solid var(--gold)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px">
+            <span style="font-size:12px;font-weight:700;color:var(--navy);background:#fff8e8;padding:3px 10px;border-radius:20px;border:1px solid rgba(201,168,76,0.3)">${m.subject}</span>
+            <span style="font-size:11px;color:var(--slate)">${time}</span>
+          </div>
+          <div style="font-size:12px;color:var(--slate);margin-bottom:5px">👤 <b>${m.student_id}</b></div>
+          <div style="font-size:13px;color:#4a5568;line-height:1.5">${m.message}</div>
+        </div>`;
+    });
+    document.getElementById("pastComplaintsList").innerHTML = html;
+  })
+  .catch(() => {
+    document.getElementById("pastComplaintsList").innerHTML = "<p style='color:var(--danger);font-size:13px'>Could not load complaints.</p>";
+  });
+}
+
+function togglePastComplaints(){
+  const div = document.getElementById("pastComplaints");
+  const btn = document.getElementById("pastBtn");
+  const isVisible = div.style.display === "block";
+
+  if(isVisible){
+    div.style.display = "none";
+    btn.textContent = "📋 View Past Complaints";
+    return;
+  }
+
+  div.style.display = "block";
+  btn.textContent = "🔼 Hide Past Complaints";
+  document.getElementById("pastComplaintsList").innerHTML = "<p style='color:var(--slate);font-size:13px'>Loading...</p>";
+
+  // Fetch all complaints by this mentor
+  fetch("http://localhost:3000/mentor/" + mentorId + "/students")
+  .then(res => res.json())
+  .then(students => {
+    // Get all student IDs
+    const ids = students.map(s => s.id);
+    // Fetch messages for each student and filter complaints
+    const promises = ids.map(id =>
+      fetch("http://localhost:3000/parent-messages/" + id).then(r => r.json())
+    );
+    return Promise.all(promises);
+  })
+  .then(allMsgs => {
+    // Flatten and filter only complaints by this mentor
+    const complaints = allMsgs.flat().filter(m =>
+      m.subject && m.subject.toLowerCase().includes('complaint') &&
+      m.sender_role === 'mentor' &&
+      m.mentor_id === mentorId
+    ).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+
+    if(!complaints.length){
+      document.getElementById("pastComplaintsList").innerHTML = `
+        <div style="text-align:center;padding:30px;opacity:0.5">
+          <div style="font-size:36px">📭</div>
+          <div style="font-size:13px;color:var(--slate);margin-top:8px">No complaints filed yet</div>
+        </div>`;
+      return;
+    }
+
+    let html = "";
+    complaints.forEach(m => {
+      const time = new Date(m.created_at).toLocaleString();
+      html += `
+        <div style="background:#f8f9fc;border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:12px;border:1px solid #e0e4ef;border-left:4px solid var(--gold)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:12px;font-weight:700;color:var(--navy);background:#fff8e8;padding:3px 10px;border-radius:20px;border:1px solid rgba(201,168,76,0.3)">${m.subject}</span>
+            <span style="font-size:11px;color:var(--slate)">${time}</span>
+          </div>
+          <div style="font-size:13px;color:var(--navy);margin-bottom:4px">👤 Student: <b>${m.student_id}</b></div>
+          <div style="font-size:13px;color:#4a5568;line-height:1.5">${m.message}</div>
+        </div>`;
+    });
+    document.getElementById("pastComplaintsList").innerHTML = html;
+  })
+  .catch(() => {
+    document.getElementById("pastComplaintsList").innerHTML = "<p style='color:var(--danger)'>Could not load complaints.</p>";
+  });
+}
+
+function onStudentSelect(){
+  const val = document.getElementById("complaintStudent").value;
+  document.getElementById("complaintForm").style.display = val ? "block" : "none";
+  document.getElementById("complaintMsg").textContent = "";
+}
+
+function submitComplaint(){
+  const studentId  = document.getElementById("complaintStudent").value;
+  const type       = document.getElementById("complaintType").value;
+  const text       = document.getElementById("complaintText").value.trim();
+  const msg        = document.getElementById("complaintMsg");
+
+  if(!studentId){ msg.style.color="var(--danger)"; msg.textContent="Please select a student."; return; }
+  if(!type)     { msg.style.color="var(--danger)"; msg.textContent="Please select a complaint type."; return; }
+  if(!text)     { msg.style.color="var(--danger)"; msg.textContent="Please enter complaint details."; return; }
+
+  fetch("http://localhost:3000/send-message", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      student_id:  studentId,
+      mentor_id:   mentorId,
+      parent_id:   studentId,
+      subject:     type + " Complaint",
+      message:     text,
+      sender_role: "mentor"
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.success){
+      msg.style.color = "var(--success)";
+      msg.textContent = "✅ Complaint submitted successfully!";
+      document.getElementById("complaintText").value = "";
+      document.getElementById("complaintType").value = "";
+      document.getElementById("complaintStudent").value = "";
+      document.getElementById("complaintForm").style.display = "none";
+      loadAllPastComplaints();
+    } else {
+      msg.style.color = "var(--danger)";
+      msg.textContent = "❌ Failed to submit. Try again.";
+    }
+  })
+  .catch(() => {
+    msg.style.color = "var(--danger)";
+    msg.textContent = "❌ Server not responding.";
+  });
+}
+
+function openStudent(id){ localStorage.setItem("viewStudent", id); window.location="mentor-student.html"; }
+function chatParent(){
+  document.getElementById("pageTitle").innerText = "Chat with Parent";
+  document.getElementById("pageTitleBtn").innerHTML = "";
+
+  fetch("http://localhost:3000/mentor/" + mentorId + "/students")
+  .then(res => res.json())
+  .then(list => {
+
+    let options = '<option value="">-- Select Student --</option>';
+    list.forEach(s => {
+      options += `<option value="${s.id}">${s.id} — ${s.name}</option>`;
+    });
+
+    document.getElementById("studentList").innerHTML = `
+      <div style="background:var(--white);border-radius:var(--radius);padding:30px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm)">
+
+        <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:var(--navy);margin-bottom:22px">💬 Chat with Parent</h3>
+
+        <div style="margin-bottom:20px">
+          <label style="font-size:13px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:8px">Select Student</label>
+          <select id="chatStudent" onchange="loadChatHistory()" style="width:100%;padding:12px 16px;border:1px solid #e0e4ef;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--navy);background:#f8f9fc;outline:none">
+            ${options}
+          </select>
+        </div>
+
+        <!-- Chat history -->
+        <div id="chatHistory" style="display:none">
+          <div id="chatMessages" style="
+            min-height:200px;max-height:320px;overflow-y:auto;
+            background:#f8f9fc;border-radius:var(--radius-sm);
+            border:1px solid #e0e4ef;padding:16px;margin-bottom:16px;
+          "></div>
+
+          <div style="margin-bottom:12px">
+            <textarea id="chatInput" rows="3" placeholder="Type your message to parent..." style="
+              width:100%;padding:14px 16px;border:1px solid #e0e4ef;
+              border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;
+              font-size:14px;color:var(--navy);background:#fff;
+              outline:none;resize:none;box-sizing:border-box"></textarea>
+          </div>
+
+          <button onclick="sendChatMessage()" style="
+            padding:12px 28px;
+            background:linear-gradient(135deg,var(--gold),var(--gold-light));
+            border:none;border-radius:40px;color:var(--navy);
+            font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;
+            cursor:pointer;box-shadow:0 4px 14px rgba(201,168,76,0.35);">
+            Send Message →
+          </button>
+          <span id="chatMsg" style="margin-left:16px;font-size:13px;font-weight:500"></span>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function loadChatHistory(){
+  const studentId = document.getElementById("chatStudent").value;
+  if(!studentId){ document.getElementById("chatHistory").style.display="none"; return; }
+
+  document.getElementById("chatHistory").style.display = "block";
+  document.getElementById("chatMessages").innerHTML = "<p style='color:var(--slate);font-size:13px'>Loading...</p>";
+
+  fetch("http://localhost:3000/parent-messages/" + studentId)
+  .then(res => res.json())
+  .then(msgs => {
+    msgs = msgs.filter(m => m.subject === 'Chat');
+    msgs.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+    if(!msgs.length){
+      document.getElementById("chatMessages").innerHTML = "<p style='color:var(--slate);font-size:13px;text-align:center'>No messages yet. Start the conversation!</p>";
+      return;
+    }
+    let html = "";
+    msgs.forEach(m => {
+      const isMentor = m.sender_role === "mentor";
+      const time = new Date(m.created_at).toLocaleString();
+      html += `
+        <div style="display:flex;justify-content:${isMentor?'flex-end':'flex-start'};margin-bottom:12px">
+          <div style="
+            max-width:70%;padding:10px 14px;
+            background:${isMentor?'var(--navy)':'#fff'};
+            color:${isMentor?'#fff':'var(--navy)'};
+            border-radius:${isMentor?'16px 16px 4px 16px':'16px 16px 16px 4px'};
+            border:1px solid ${isMentor?'transparent':'#e0e4ef'};
+            box-shadow:0 2px 6px rgba(0,0,0,0.06)">
+            <div style="font-size:11px;color:${isMentor?'var(--gold)':'var(--slate)'};margin-bottom:4px;font-weight:600">${isMentor?'You (Mentor)':'Parent'}</div>
+            <div style="font-size:13px;line-height:1.5">${m.message}</div>
+            <div style="font-size:10px;color:${isMentor?'rgba(255,255,255,0.5)':'var(--slate)'};margin-top:4px;text-align:right">${time}</div>
+          </div>
+        </div>`;
+    });
+    const box = document.getElementById("chatMessages");
+    box.innerHTML = html;
+    setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
+  });
+}
+
+function sendChatMessage(){
+  const studentId = document.getElementById("chatStudent").value;
+  const message   = document.getElementById("chatInput").value.trim();
+  const msgEl     = document.getElementById("chatMsg");
+
+  if(!message){ msgEl.style.color="var(--danger)"; msgEl.textContent="Please type a message."; return; }
+
+  fetch("http://localhost:3000/send-message", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      student_id:  studentId,
+      mentor_id:   mentorId,
+      parent_id:   studentId,
+      subject:     "Chat",
+      message:     message,
+      sender_role: "mentor"
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.success){
+      document.getElementById("chatInput").value = "";
+      msgEl.style.color = "var(--success)";
+      msgEl.textContent = "✅ Sent!";
+      setTimeout(() => msgEl.textContent = "", 2000);
+      loadChatHistory();
+    } else {
+      msgEl.style.color = "var(--danger)";
+      msgEl.textContent = "❌ Failed. Try again.";
+    }
+  })
+  .catch(() => {
+    msgEl.style.color = "var(--danger)";
+    msgEl.textContent = "❌ Server not responding.";
+  });
+}
+function logout(){ localStorage.clear(); window.location="login.html"; }
+
+</script>
+</body>
+</html>

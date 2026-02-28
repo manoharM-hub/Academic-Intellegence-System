@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Student Profile — AIS</title>
+<link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-icon">🎓</div>
+    <div>
+      <div class="brand-name">Academic Intelligence System</div>
+      <div class="brand-sub">Student Profile</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn-logout" onclick="logout()">← Back to Dashboard</button>
+  </div>
+</header>
+
+<!-- NAV TABS -->
+<nav class="nav-tabs">
+  <button class="nav-tab active" onclick="showTab('profile', this)">👤 Profile</button>
+  <button class="nav-tab" onclick="showTab('marks', this)">📊 Marks</button>
+  <button class="nav-tab" onclick="showTab('attendance', this)">📅 Attendance</button>
+</nav>
+
+<div class="main-container">
+
+  <!-- STUDENT BANNER -->
+  <div class="welcome-banner" style="margin-bottom:24px">
+    <h2 id="studentNameBanner">Loading...</h2>
+    <p id="studentInfoBanner">—</p>
+  </div>
+
+  <!-- PROFILE TAB -->
+  <div id="tab-profile" class="section-panel active">
+    <div class="info-card">
+      <h3>📋 Student Details</h3>
+      <div class="info-grid" id="info"></div>
+    </div>
+  </div>
+
+  <!-- MARKS TAB -->
+  <div id="tab-marks" class="section-panel">
+    <h3 style="font-family:'Playfair Display',serif;font-size:20px;color:var(--navy);margin-bottom:20px">📊 Academic Results</h3>
+
+    <select id="semSelect" onchange="loadMarks()">
+      <option value="">Select Semester</option>
+      ${[1,2,3,4,5,6,7,8].map(i=>`<option value="${i}">Semester ${i}</option>`).join('')}
+    </select>
+
+    <div id="marksResult" style="margin-top:24px"></div>
+
+    <div id="progressBox" style="margin-top:24px"></div>
+  </div>
+
+  <!-- ATTENDANCE TAB -->
+  <div id="tab-attendance" class="section-panel">
+    <h3 style="font-family:'Playfair Display',serif;font-size:20px;color:var(--navy);margin-bottom:20px">📅 Attendance</h3>
+    <div id="attResult"></div>
+  </div>
+
+</div>
+
+
+<script>
+
+const id = localStorage.getItem("viewStudent");
+
+fetch("http://localhost:3000/student/"+id)
+.then(res=>res.json())
+.then(data=>{
+  document.getElementById("studentNameBanner").innerHTML =
+    `<span style="color:var(--gold)">${data.name}</span>`;
+  document.getElementById("studentInfoBanner").textContent =
+    `${data.roll} · ${data.branch} · ${data.degree}`;
+
+  const fields = [
+    ["Roll Number", data.roll],
+    ["Branch", data.branch],
+    ["Degree", data.degree],
+    ["Gender", data.gender],
+    ["Date of Birth", data.dob],
+    ["Mobile", data.mobile],
+  ];
+
+  document.getElementById("info").innerHTML = fields.map(([label,val])=>`
+    <div class="info-item">
+      <div class="info-label">${label}</div>
+      <div class="info-value">${val || '—'}</div>
+    </div>
+  `).join('');
+});
+
+function showTab(name, btn){
+  document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+
+  if(name === 'attendance') loadDefaultAttendance();
+}
+
+function loadMarks(){
+  const sem = document.getElementById("semSelect").value;
+  if(!sem) return;
+
+  document.getElementById("marksResult").innerHTML = '<div class="loading-skeleton" style="height:200px"></div>';
+  document.getElementById("progressBox").innerHTML = '';
+
+  fetch(`http://localhost:3000/results/${id}/${sem}`)
+  .then(res=>res.json())
+  .then(data=>{
+    let total = 0, count = 0;
+
+    let html = `<table class="results-table">
+      <thead><tr>
+        <th>Code</th><th>Subject</th><th>Grade</th>
+      </tr></thead><tbody>`;
+
+    data.forEach(r=>{
+      html += `<tr>
+        <td style="font-family:monospace;font-size:13px">${r.course_code}</td>
+        <td>${r.course_name}</td>
+        <td><span class="grade-badge grade-${r.grade}">${r.grade}</span></td>
+      </tr>`;
+      let g = gradeToPoint(r.grade);
+      if(g){ total+=g; count++; }
+    });
+    html += "</tbody></table>";
+    document.getElementById("marksResult").innerHTML = html;
+
+    if(count>0){
+      const avg = Math.round((total/count)*10);
+      document.getElementById("progressBox").innerHTML = `
+        <div style="background:var(--white);border-radius:var(--radius);padding:28px;text-align:center;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm);margin-top:16px">
+          <div style="font-family:'Playfair Display',serif;font-size:16px;color:var(--navy);margin-bottom:16px">Overall Performance</div>
+          <div style="position:relative;width:140px;height:140px;margin:0 auto 16px">
+            <svg viewBox="0 0 140 140" style="transform:rotate(-90deg)">
+              <circle cx="70" cy="70" r="58" fill="none" stroke="#eef0f8" stroke-width="14"/>
+              <circle cx="70" cy="70" r="58" fill="none" stroke="var(--gold)" stroke-width="14"
+                stroke-dasharray="${Math.round(2*Math.PI*58*avg/100)} ${Math.round(2*Math.PI*58)}"
+                stroke-linecap="round"/>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+              <span style="font-size:26px;font-weight:700;color:var(--navy)">${avg}%</span>
+              <span style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:0.5px">Score</span>
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--slate)">Semester ${sem} Performance</div>
+        </div>`;
+    }
+  });
+}
+
+function loadDefaultAttendance(){
+  fetch(`http://localhost:3000/attendance/${id}/1`)
+  .then(res=>res.json())
+  .then(data=>{
+    if(!data.length){ document.getElementById("attResult").innerHTML="<p style='color:var(--slate)'>No attendance data.</p>"; return; }
+
+    let html = "";
+    data.forEach(r=>{
+      const pct = r.attendance;
+      const cls = pct<60?'low':pct<75?'medium':'';
+      html += `
+        <div class="att-item">
+          <div class="att-header">
+            <span>${r.subject}</span>
+            <span style="color:${pct<75?'var(--danger)':'var(--success)'};font-weight:600">${pct}%</span>
+          </div>
+          <div class="att-bar-bg">
+            <div class="att-bar-fill ${cls}" style="width:${pct}%"></div>
+          </div>
+        </div>`;
+    });
+    document.getElementById("attResult").innerHTML = html;
+  });
+}
+
+function gradeToPoint(g){ return {S:10,A:9,B:8,C:7,D:6,E:5}[g]; }
+function logout(){ window.location="mentor-dashboard.html"; }
+
+</script>
+</body>
+</html>

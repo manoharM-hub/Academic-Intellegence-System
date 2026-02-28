@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Parent Portal — AIS</title>
+<link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-icon">🎓</div>
+    <div>
+      <div class="brand-name">Academic Intelligence System</div>
+      <div class="brand-sub">Parent Portal</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="studentName" style="color:var(--gold);font-size:14px;font-weight:500;margin-right:8px"></span>
+    <button class="btn-logout" onclick="logout()">Log Out</button>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="dashboard-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-welcome">
+      <div class="s-role">Parent Portal</div>
+      <div class="s-name" style="margin-top:4px">Welcome 👨‍👩‍👦</div>
+      <div class="s-dept" style="margin-top:6px">Monitor your child's academic progress</div>
+    </div>
+
+    <button class="sidebar-btn" onclick="showProgress()">📈 View Progress</button>
+    <button class="sidebar-btn" onclick="showComplaints()">📝 Complaints Box</button>
+    <button class="sidebar-btn chat-btn" onclick="showChat()">💬 Chat with Mentor</button>
+    <button class="sidebar-btn" onclick="showInbox()">📬 Inbox</button>
+  </aside>
+
+  <!-- CONTENT -->
+  <main class="content-area" id="contentArea">
+
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60%;text-align:center;opacity:0.5">
+      <div style="font-size:64px;margin-bottom:16px">📚</div>
+      <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--navy);margin-bottom:8px">Select an option</div>
+      <div style="font-size:14px;color:var(--slate)">Choose from the left panel to view your child's progress</div>
+    </div>
+
+  </main>
+
+</div>
+
+
+<script>
+
+const id = localStorage.getItem("parentId");
+if(!id){ alert("Session expired."); window.location="login.html"; }
+
+const content = document.getElementById("contentArea");
+
+fetch("http://localhost:3000/student/"+id)
+.then(res=>res.json())
+.then(data=>{
+  if(!data) return;
+  const father = data.father ? data.father.trim() : '';
+  if(father){
+    const titleCase = father.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    document.getElementById("studentName").textContent = 'Mr. ' + titleCase;
+  } else {
+    document.getElementById("studentName").textContent = data.name;
+  }
+});
+
+function logout(){ localStorage.removeItem("parentId"); window.location="login.html"; }
+
+/* ===== PROGRESS ===== */
+function showProgress(){
+  content.innerHTML = `
+    <h2>View Progress</h2>
+    <p style="color:var(--slate);margin-bottom:24px;font-size:14px">Select what you'd like to review</p>
+    <div class="progress-btns">
+      <button class="progress-choice-btn" onclick="loadMarks()">📊 Marks & Grades</button>
+      <button class="progress-choice-btn" onclick="loadAttendance()">📅 Attendance</button>
+    </div>`;
+}
+
+/* ===== MARKS ===== */
+function loadMarks(){
+  content.innerHTML = `
+    <h2>Marks & Grades</h2>
+    <select id="semSelect" onchange="fetchMarks()" style="margin-top:8px;margin-bottom:24px">
+      <option value="">— Select Semester —</option>
+      ${[1,2,3,4,5,6,7,8].map(i=>`<option value="${i}">Semester ${i}</option>`).join('')}
+    </select>
+    <div id="marksArea"></div>`;
+}
+
+function fetchMarks(){
+  const sem = document.getElementById("semSelect").value;
+  if(!sem) return;
+
+  document.getElementById("marksArea").innerHTML = '<div class="loading-skeleton" style="height:200px;border-radius:var(--radius)"></div>';
+
+  fetch(`http://localhost:3000/results/${id}/${sem}`)
+  .then(res=>res.json())
+  .then(data=>{
+    if(!data.length){ document.getElementById("marksArea").innerHTML="<p style='color:var(--slate)'>No marks found.</p>"; return; }
+
+    let html = `<h3 style="font-family:'Playfair Display',serif;font-size:18px;color:var(--navy);margin-bottom:16px">Semester ${sem} Results</h3>`;
+    let labels = [], values = [];
+    const gradeMap = {S:10,A:9,B:8,C:7,D:6,E:5,F:0};
+
+    data.forEach(r=>{
+      html += `<div class="result-card">
+        <b>${r.course_name}</b>
+        <span style="float:right"><span class="grade-badge grade-${r.grade}">${r.grade}</span></span>
+      </div>`;
+      labels.push(r.course_name.length>15 ? r.course_name.substring(0,15)+'…' : r.course_name);
+      values.push(gradeMap[r.grade]||0);
+    });
+
+    html += `<div style="background:var(--white);border-radius:var(--radius);padding:24px;margin-top:20px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm)">
+      <canvas id="chart" height="180"></canvas>
+    </div>`;
+
+    document.getElementById("marksArea").innerHTML = html;
+
+    new Chart(document.getElementById("chart"),{
+      type:"bar",
+      data:{
+        labels,
+        datasets:[{
+          label:"Grade Points",
+          data:values,
+          backgroundColor: values.map(v => v>=9?"rgba(201,168,76,0.8)":v>=7?"rgba(29,52,97,0.7)":"rgba(231,76,60,0.7)"),
+          borderRadius:6, borderSkipped:false
+        }]
+      },
+      options:{
+        plugins:{legend:{display:false}},
+        scales:{
+          y:{beginAtZero:true,max:10,ticks:{stepSize:1,color:"#8892a4"},grid:{color:"rgba(0,0,0,0.05)"}},
+          x:{ticks:{color:"#8892a4",font:{size:11}},grid:{display:false}}
+        }
+      }
+    });
+  });
+}
+
+/* ===== ATTENDANCE ===== */
+function loadAttendance(){
+  content.innerHTML = `
+    <h2>Attendance</h2>
+    <select id="semSelectA" onchange="fetchAttendance()" style="margin-top:8px;margin-bottom:24px">
+      <option value="">— Select Semester —</option>
+      ${[1,2,3,4,5,6,7,8].map(i=>`<option value="${i}">Semester ${i}</option>`).join('')}
+    </select>
+    <div id="attArea"></div>`;
+}
+
+function fetchAttendance(){
+  const sem = document.getElementById("semSelectA").value;
+  if(!sem) return;
+
+  document.getElementById("attArea").innerHTML = '<div class="loading-skeleton" style="height:150px;border-radius:var(--radius)"></div>';
+
+  fetch(`http://localhost:3000/attendance/${id}/${sem}`)
+  .then(res=>res.json())
+  .then(data=>{
+    if(!data.length){ document.getElementById("attArea").innerHTML="<p style='color:var(--slate)'>No attendance found.</p>"; return; }
+
+    let html = "";
+    data.forEach(a=>{
+      const pct = a.attendance;
+      const cls = pct<60?'low':pct<75?'medium':'';
+      html += `
+        <div class="att-item" style="background:var(--white);padding:16px 20px;border-radius:var(--radius-sm);margin-bottom:12px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm)">
+          <div class="att-header">
+            <span>${a.subject}</span>
+            <span style="color:${pct<75?'var(--danger)':'var(--success)'};font-weight:700">${pct}%</span>
+          </div>
+          <div class="att-bar-bg" style="margin-top:10px">
+            <div class="att-bar-fill ${cls}" style="width:${pct}%"></div>
+          </div>
+          ${pct<75?`<div style="font-size:12px;color:var(--danger);margin-top:6px">⚠️ Below 75% attendance threshold</div>`:''}
+        </div>`;
+    });
+    document.getElementById("attArea").innerHTML = html;
+  });
+}
+
+function showComplaints(){
+  content.innerHTML = `
+    <h2 style="font-family:'Playfair Display',serif;color:var(--navy);margin-bottom:8px">📝 Complaints Box</h2>
+    <p style="color:var(--slate);font-size:14px;margin-bottom:24px">Complaints registered by your child's mentor</p>
+    <div id="complaintsList"><p style="color:var(--slate);font-size:13px">Loading...</p></div>
+  `;
+
+  fetch("http://localhost:3000/parent-messages/" + id)
+  .then(res => res.json())
+  .then(msgs => {
+    const complaints = msgs.filter(m => m.subject && m.subject.toLowerCase().includes('complaint') && m.sender_role === 'mentor');
+    if(!complaints.length){
+      document.getElementById("complaintsList").innerHTML = `
+        <div style="text-align:center;padding:60px 20px;opacity:0.5">
+          <div style="font-size:48px;margin-bottom:12px">📭</div>
+          <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--navy)">No complaints yet</div>
+          <div style="font-size:13px;color:var(--slate);margin-top:6px">Your child's mentor hasn't filed any complaints</div>
+        </div>`;
+      return;
+    }
+    let html = "";
+    complaints.forEach(m => {
+      const time = new Date(m.created_at).toLocaleString();
+      html += `
+        <div style="background:#fff;border-radius:var(--radius-sm);padding:18px 20px;margin-bottom:14px;border:1px solid #e0e4ef;border-left:4px solid var(--gold);box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:700;color:var(--navy);background:#fff8e8;padding:4px 12px;border-radius:20px;border:1px solid rgba(201,168,76,0.3)">${m.subject}</span>
+            <span style="font-size:11px;color:var(--slate)">${time}</span>
+          </div>
+          <div style="font-size:14px;color:#4a5568;line-height:1.6">${m.message}</div>
+        </div>`;
+    });
+    document.getElementById("complaintsList").innerHTML = html;
+  })
+  .catch(() => {
+    document.getElementById("complaintsList").innerHTML = "<p style='color:var(--danger)'>Could not load complaints.</p>";
+  });
+}
+
+function showChat(){
+  content.innerHTML = `
+    <h2 style="font-family:'Playfair Display',serif;color:var(--navy);margin-bottom:8px">💬 Chat with Mentor</h2>
+    <p style="color:var(--slate);font-size:14px;margin-bottom:20px">Two-way conversation with your child's mentor</p>
+
+    <div style="background:#fff;border-radius:var(--radius);padding:24px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm)">
+      <div id="parentChatMessages" style="
+        min-height:220px;max-height:340px;overflow-y:auto;
+        background:#f8f9fc;border-radius:var(--radius-sm);
+        border:1px solid #e0e4ef;padding:16px;margin-bottom:16px;">
+        <p style="color:var(--slate);font-size:13px;text-align:center">Loading messages...</p>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <textarea id="parentChatInput" rows="3" placeholder="Type your reply to mentor..." style="
+          width:100%;padding:14px 16px;border:1px solid #e0e4ef;
+          border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;
+          font-size:14px;color:var(--navy);background:#fff;
+          outline:none;resize:none;box-sizing:border-box"></textarea>
+      </div>
+
+      <button onclick="sendParentMessage()" style="
+        padding:12px 28px;
+        background:linear-gradient(135deg,var(--gold),var(--gold-light));
+        border:none;border-radius:40px;color:var(--navy);
+        font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;
+        cursor:pointer;box-shadow:0 4px 14px rgba(201,168,76,0.35);">
+        Send Reply →
+      </button>
+      <span id="parentChatMsg" style="margin-left:16px;font-size:13px;font-weight:500"></span>
+    </div>
+  `;
+  loadParentChat();
+}
+
+function loadParentChat(){
+  fetch("http://localhost:3000/parent-messages/" + id)
+  .then(res => res.json())
+  .then(msgs => {
+    msgs = msgs.filter(m => m.subject === 'Chat');
+    msgs.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+    const box = document.getElementById("parentChatMessages");
+    if(!msgs.length){
+      box.innerHTML = "<p style='color:var(--slate);font-size:13px;text-align:center'>No messages yet. Your mentor hasn't sent any messages.</p>";
+      return;
+    }
+    let html = "";
+    msgs.forEach(m => {
+      const isParent = m.sender_role === "parent";
+      const time = new Date(m.created_at).toLocaleString();
+      html += `
+        <div style="display:flex;justify-content:${isParent?'flex-end':'flex-start'};margin-bottom:12px">
+          <div style="
+            max-width:70%;padding:10px 14px;
+            background:${isParent?'var(--navy)':'#fff'};
+            color:${isParent?'#fff':'var(--navy)'};
+            border-radius:${isParent?'16px 16px 4px 16px':'16px 16px 16px 4px'};
+            border:1px solid ${isParent?'transparent':'#e0e4ef'};
+            box-shadow:0 2px 6px rgba(0,0,0,0.06)">
+            <div style="font-size:11px;color:${isParent?'var(--gold)':'var(--slate)'};margin-bottom:4px;font-weight:600">${isParent?'You (Parent)':'Mentor'}</div>
+            <div style="font-size:13px;line-height:1.5">${m.message}</div>
+            <div style="font-size:10px;color:${isParent?'rgba(255,255,255,0.5)':'var(--slate)'};margin-top:4px;text-align:right">${time}</div>
+          </div>
+        </div>`;
+    });
+    box.innerHTML = html;
+    setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
+  });
+}
+
+function sendParentMessage(){
+  const message = document.getElementById("parentChatInput").value.trim();
+  const msgEl   = document.getElementById("parentChatMsg");
+
+  if(!message){ msgEl.style.color="var(--danger)"; msgEl.textContent="Please type a message."; return; }
+
+  fetch("http://localhost:3000/send-message", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      student_id:  id,
+      mentor_id:   "",
+      parent_id:   id,
+      subject:     "Chat",
+      message:     message,
+      sender_role: "parent"
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.success){
+      document.getElementById("parentChatInput").value = "";
+      msgEl.style.color = "var(--success)";
+      msgEl.textContent = "✅ Sent!";
+      setTimeout(() => msgEl.textContent = "", 2000);
+      loadParentChat();
+    } else {
+      msgEl.style.color = "var(--danger)";
+      msgEl.textContent = "❌ Failed. Try again.";
+    }
+  })
+  .catch(() => {
+    msgEl.style.color = "var(--danger)";
+    msgEl.textContent = "❌ Server not responding.";
+  });
+}
+
+function showInbox(){
+  content.innerHTML = `
+    <h2 style="font-family:'Playfair Display',serif;color:var(--navy);margin-bottom:8px">📬 Inbox</h2>
+    <p style="color:var(--slate);font-size:14px">College news, events and updates — coming soon!</p>
+    <div style="text-align:center;padding:60px 20px;opacity:0.5">
+      <div style="font-size:48px;margin-bottom:12px">📬</div>
+      <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--navy)">Inbox</div>
+      <div style="margin-top:16px;padding:10px 24px;background:var(--gold-pale);border-radius:40px;display:inline-block;font-size:13px;font-weight:600;color:var(--navy);border:1px solid rgba(201,168,76,0.3)">🚧 Coming Soon</div>
+    </div>`;
+}
+
+</script>
+</body>
+</html>
