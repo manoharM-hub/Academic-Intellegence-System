@@ -185,10 +185,19 @@ fetch("http://localhost:3000/student/"+id)
 
 /* Section switching */
 function openSection(type, btn) {
-  document.querySelectorAll('.section-panel').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.section-panel').forEach(s => {
+    s.classList.remove('active');
+  });
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(type + 'Section').classList.add('active');
+
+  const target = document.getElementById(type + 'Section');
+  // Restart animation by removing and re-adding active
+  target.classList.remove('active');
+  void target.offsetWidth; // force reflow — restarts animation
+  target.classList.add('active');
+
   if(btn) btn.classList.add('active');
+  document.getElementById("printBtnWrapper").style.display = "none";
 }
 
 /* Marks */
@@ -342,7 +351,7 @@ function printMarks(){
     @media print { body { padding: 15px; } }
   `;
   win.document.write('<!DOCTYPE html><html><head><title>Semester ' + sem + ' Marks</title><style>' + printStyles + '</style></head><body>');
-  win.document.write('<h2>Vel Tech University</h2>');
+  win.document.write('<h2>Academic Intelligence System</h2>');
   win.document.write('<p>Student: <b>' + studentName + '</b> &nbsp;|&nbsp; Semester: <b>' + sem + '</b> &nbsp;|&nbsp; Date: ' + new Date().toLocaleDateString() + '</p>');
   win.document.write(table);
   win.document.write('<div class="footer">Vel Tech Rangarajan Dr. Sagunthala R&D Institute of Science and Technology</div>');
