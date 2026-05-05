@@ -60,7 +60,7 @@ if(!id){ alert("Session expired."); window.location="login.html"; }
 
 const content = document.getElementById("contentArea");
 
-fetch("http://localhost:3000/student/" + id)
+fetch("https://academic-intellegence-system-production.up.railway.app/student/" + id)
 .then(res => res.json())
 .then(data => {
   if(!data) return;
@@ -103,7 +103,7 @@ function fetchMarks(){
 
   document.getElementById("marksArea").innerHTML = '<div class="loading-skeleton" style="height:200px;border-radius:var(--radius)"></div>';
 
-  fetch(`http://localhost:3000/results/${id}/${sem}`)
+  fetch(`https://academic-intellegence-system-production.up.railway.app/results/${id}/${sem}`)
   .then(res => res.json())
   .then(data => {
     if(!data.length){ document.getElementById("marksArea").innerHTML = "<p style='color:var(--slate)'>No marks found.</p>"; return; }
@@ -169,7 +169,7 @@ function fetchAttendance(){
 
   document.getElementById("attArea").innerHTML = '<div class="loading-skeleton" style="height:150px;border-radius:var(--radius)"></div>';
 
-  fetch(`http://localhost:3000/attendance/${id}/${sem}`)
+  fetch(`https://academic-intellegence-system-production.up.railway.app/attendance/${id}/${sem}`)
   .then(res => res.json())
   .then(data => {
     if(!data.length){ document.getElementById("attArea").innerHTML = "<p style='color:var(--slate)'>No attendance found.</p>"; return; }
@@ -202,7 +202,7 @@ function showComplaints(){
     <div id="complaintsList"><p style="color:var(--slate);font-size:13px">Loading...</p></div>
   `;
 
-  fetch("http://localhost:3000/parent-messages/" + id)
+  fetch("https://academic-intellegence-system-production.up.railway.app/parent-messages/" + id)
   .then(res => res.json())
   .then(msgs => {
     const complaints = msgs.filter(m =>
@@ -270,7 +270,7 @@ function showChat(){
 }
 
 function loadParentChat(){
-  fetch("http://localhost:3000/parent-messages/" + id)
+  fetch("https://academic-intellegence-system-production.up.railway.app/parent-messages/" + id)
   .then(res => res.json())
   .then(msgs => {
     msgs = msgs.filter(m => m.subject === 'Chat');
@@ -309,7 +309,7 @@ function sendParentMessage(){
   const msgEl   = document.getElementById("parentChatMsg");
   if(!message){ msgEl.style.color="var(--danger)"; msgEl.textContent="Please type a message."; return; }
 
-  fetch("http://localhost:3000/send-message", {
+  fetch("https://academic-intellegence-system-production.up.railway.app/send-message", {
     method: "POST",
     headers: { "Content-Type":"application/json" },
     body: JSON.stringify({
@@ -357,7 +357,7 @@ function showInbox(){
     </div>
   `;
 
-  fetch("http://localhost:3000/events")
+  fetch("https://academic-intellegence-system-production.up.railway.app/events")
   .then(res => res.json())
   .then(events => {
     const list = document.getElementById("evtViewList");

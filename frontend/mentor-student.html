@@ -72,7 +72,7 @@
 
 const id = localStorage.getItem("viewStudent");
 
-fetch("http://localhost:3000/student/"+id)
+fetch("https://academic-intellegence-system-production.up.railway.app/student/"+id)
 .then(res=>res.json())
 .then(data=>{
   document.getElementById("studentNameBanner").innerHTML =
@@ -113,7 +113,7 @@ function loadMarks(){
   document.getElementById("marksResult").innerHTML = '<div class="loading-skeleton" style="height:200px"></div>';
   document.getElementById("progressBox").innerHTML = '';
 
-  fetch(`http://localhost:3000/results/${id}/${sem}`)
+  fetch(`https://academic-intellegence-system-production.up.railway.app/results/${id}/${sem}`)
   .then(res=>res.json())
   .then(data=>{
     let total = 0, count = 0;
@@ -159,7 +159,7 @@ function loadMarks(){
 }
 
 function loadDefaultAttendance(){
-  fetch(`http://localhost:3000/attendance/${id}/1`)
+  fetch(`https://academic-intellegence-system-production.up.railway.app/attendance/${id}/1`)
   .then(res=>res.json())
   .then(data=>{
     if(!data.length){ document.getElementById("attResult").innerHTML="<p style='color:var(--slate)'>No attendance data.</p>"; return; }

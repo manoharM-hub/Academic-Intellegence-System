@@ -52,7 +52,7 @@ document.getElementById("msg").innerText = `Enter ${role} ID`;
 return;
 }
 
-fetch(`http://localhost:3000/login/${role}`,{
+fetch(`https://academic-intellegence-system-production.up.railway.app/login/${role}`,{
 method: "POST",
 headers:{ "Content-Type":"application/json" },
 body: JSON.stringify({ id, password })
@@ -112,7 +112,7 @@ if(path.includes("dashboard.html") && !path.includes("mentor")){
 const id = localStorage.getItem("studentId");
 if(!id) return;
 
-fetch("http://localhost:3000/student/"+id)
+fetch("https://academic-intellegence-system-production.up.railway.app/student/"+id)
 .then(res=>res.json())
 .then(data=>{
 
@@ -161,7 +161,7 @@ const roleBox = document.getElementById("mentorRole");
 if(nameBox) nameBox.innerText = `Welcome, ${name}`;
 if(roleBox) roleBox.innerText = `${designation} — ${department} Department`;
 
-fetch("http://localhost:3000/mentor/"+id+"/students")
+fetch("https://academic-intellegence-system-production.up.railway.app/mentor/"+id+"/students")
 .then(res=>res.json())
 .then(list=>{
 

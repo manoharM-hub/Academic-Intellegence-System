@@ -168,7 +168,7 @@ const id = localStorage.getItem("studentId");
 if(!id){ alert("Login again"); window.location="login.html"; }
 
 /* ===== LOAD STUDENT INFO ===== */
-fetch("http://localhost:3000/student/" + id)
+fetch("https://academic-intellegence-system-production.up.railway.app/student/" + id)
 .then(res => res.json())
 .then(data => {
   if(!data) return;
@@ -222,7 +222,7 @@ function loadEvents(){
     <div class="loading-skeleton" style="height:100px;border-radius:var(--radius)"></div>
   `;
 
-  fetch("http://localhost:3000/events")
+  fetch("https://academic-intellegence-system-production.up.railway.app/events")
   .then(res => res.json())
   .then(events => {
     if(!events || !events.length){
@@ -295,7 +295,7 @@ function loadMarksFromSelect() {
   if(!sem) return;
   document.getElementById("marksResult").innerHTML = '<div class="loading-skeleton" style="height:200px;"></div>';
   document.getElementById("printBtnWrapper").style.display = "none";
-  fetch(`http://localhost:3000/results/${id}/${sem}`)
+  fetch(`https://academic-intellegence-system-production.up.railway.app/results/${id}/${sem}`)
   .then(res => res.json())
   .then(data => {
     if(!data.length){ document.getElementById("marksResult").innerHTML = "<p style='color:var(--slate)'>No records found for this semester.</p>"; return; }
@@ -323,7 +323,7 @@ function loadUnitMarks() {
   if(!sem) return;
   document.getElementById("unitResult").innerHTML = '<div class="loading-skeleton" style="height:200px;"></div>';
 
-  fetch(`http://localhost:3000/unit-marks/${id}/${sem}`)
+  fetch(`https://academic-intellegence-system-production.up.railway.app/unit-marks/${id}/${sem}`)
   .then(res => res.json())
   .then(data => {
     if(!data.length){ document.getElementById("unitResult").innerHTML = "<p style='color:var(--slate)'>No unit marks found for this semester.</p>"; return; }
@@ -357,7 +357,7 @@ function loadAttFromSelect() {
   const sem = document.getElementById("attSem").value;
   if(!sem) return;
   document.getElementById("attResult").innerHTML = '<div class="loading-skeleton" style="height:150px;"></div>';
-  fetch(`http://localhost:3000/attendance/${id}/${sem}`)
+  fetch(`https://academic-intellegence-system-production.up.railway.app/attendance/${id}/${sem}`)
   .then(res => res.json())
   .then(data => {
     if(!data.length){ document.getElementById("attResult").innerHTML = "<p style='color:var(--slate)'>No attendance records found.</p>"; return; }
@@ -419,7 +419,7 @@ function uploadResume(){
   const formData = new FormData();
   formData.append('resume', selectedFile);
   formData.append('studentId', id);
-  fetch('http://localhost:3000/upload-resume', { method:'POST', body: formData })
+  fetch('https://academic-intellegence-system-production.up.railway.app/upload-resume', { method:'POST', body: formData })
   .then(res => res.json())
   .then(data => {
     if(data.success){ msg.style.color='var(--success)'; msg.textContent='✅ Resume uploaded successfully!'; clearFile(); }
@@ -470,7 +470,7 @@ function gradePoint(grade){
 function calculateSGPA(){
   const sem = document.getElementById("marksSem").value;
   if(!sem){ alert("Please select a semester first!"); return; }
-  fetch(`http://localhost:3000/results/${id}/${sem}`)
+  fetch(`https://academic-intellegence-system-production.up.railway.app/results/${id}/${sem}`)
   .then(res => res.json())
   .then(data => {
     const hasRA = data.some(r => r.grade === 'RA' || r.result === 'Fail');
@@ -485,7 +485,7 @@ function calculateCGPA(){
   if(!sem){ alert("Please select a semester first!"); return; }
   const semCount = parseInt(sem);
   const promises = [];
-  for(let i = 1; i <= semCount; i++) promises.push(fetch(`http://localhost:3000/results/${id}/${i}`).then(r => r.json()));
+  for(let i = 1; i <= semCount; i++) promises.push(fetch(`https://academic-intellegence-system-production.up.railway.app/results/${id}/${i}`).then(r => r.json()));
   Promise.all(promises).then(allData => {
     const hasRA = allData.some(semData => semData.some(r => r.grade === 'RA' || r.result === 'Fail'));
     if(hasRA){ showGpaCard('cgpa', null, sem, true); return; }
