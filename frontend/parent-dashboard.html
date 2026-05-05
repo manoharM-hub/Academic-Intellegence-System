@@ -43,13 +43,11 @@
 
   <!-- CONTENT -->
   <main class="content-area" id="contentArea">
-
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60%;text-align:center;opacity:0.5">
       <div style="font-size:64px;margin-bottom:16px">📚</div>
       <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--navy);margin-bottom:8px">Select an option</div>
       <div style="font-size:14px;color:var(--slate)">Choose from the left panel to view your child's progress</div>
     </div>
-
   </main>
 
 </div>
@@ -62,9 +60,9 @@ if(!id){ alert("Session expired."); window.location="login.html"; }
 
 const content = document.getElementById("contentArea");
 
-fetch("http://localhost:3000/student/"+id)
-.then(res=>res.json())
-.then(data=>{
+fetch("http://localhost:3000/student/" + id)
+.then(res => res.json())
+.then(data => {
   if(!data) return;
   const father = data.father ? data.father.trim() : '';
   if(father){
@@ -106,37 +104,40 @@ function fetchMarks(){
   document.getElementById("marksArea").innerHTML = '<div class="loading-skeleton" style="height:200px;border-radius:var(--radius)"></div>';
 
   fetch(`http://localhost:3000/results/${id}/${sem}`)
-  .then(res=>res.json())
-  .then(data=>{
-    if(!data.length){ document.getElementById("marksArea").innerHTML="<p style='color:var(--slate)'>No marks found.</p>"; return; }
+  .then(res => res.json())
+  .then(data => {
+    if(!data.length){ document.getElementById("marksArea").innerHTML = "<p style='color:var(--slate)'>No marks found.</p>"; return; }
 
     let html = `<h3 style="font-family:'Playfair Display',serif;font-size:18px;color:var(--navy);margin-bottom:16px">Semester ${sem} Results</h3>`;
     let labels = [], values = [];
-    const gradeMap = {S:10,A:9,B:8,C:7,D:6,E:5,F:0};
+    const gradeMap = {S:10,A:9,B:8,C:7,D:6,E:0,F:0};
 
-    data.forEach(r=>{
+    data.forEach(r => {
       html += `<div class="result-card">
         <b>${r.course_name}</b>
         <span style="float:right"><span class="grade-badge grade-${r.grade}">${r.grade}</span></span>
       </div>`;
-      labels.push(r.course_name.length>15 ? r.course_name.substring(0,15)+'…' : r.course_name);
-      values.push(gradeMap[r.grade]||0);
+      labels.push(r.course_name.length > 15 ? r.course_name.substring(0,15)+'…' : r.course_name);
+      values.push(gradeMap[r.grade] || 0);
     });
 
     html += `<div style="background:var(--white);border-radius:var(--radius);padding:24px;margin-top:20px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm)">
-      <canvas id="chart" height="180"></canvas>
+      <canvas id="chart" height="80"></canvas>
     </div>`;
 
     document.getElementById("marksArea").innerHTML = html;
 
-    new Chart(document.getElementById("chart"),{
-      type:"bar",
-      data:{
+    new Chart(document.getElementById("chart"), {
+      type: "bar",
+      data: {
         labels,
         datasets:[{
-          label:"Grade Points",
-          data:values,
-          backgroundColor: values.map(v => v>=9?"rgba(201,168,76,0.8)":v>=7?"rgba(29,52,97,0.7)":"rgba(231,76,60,0.7)"),
+          label: "Grade Points",
+          data: values,
+          barThickness: 35,
+          backgroundColor: values.map(v =>
+            v==10?"#90EE90": v==9?"#7EBBDE": v==8?"#6D6FDE": v==7?"#EDB345": v==6?"#FFB6C1":"#FF6B6B"
+          ),
           borderRadius:6, borderSkipped:false
         }]
       },
@@ -169,12 +170,12 @@ function fetchAttendance(){
   document.getElementById("attArea").innerHTML = '<div class="loading-skeleton" style="height:150px;border-radius:var(--radius)"></div>';
 
   fetch(`http://localhost:3000/attendance/${id}/${sem}`)
-  .then(res=>res.json())
-  .then(data=>{
-    if(!data.length){ document.getElementById("attArea").innerHTML="<p style='color:var(--slate)'>No attendance found.</p>"; return; }
+  .then(res => res.json())
+  .then(data => {
+    if(!data.length){ document.getElementById("attArea").innerHTML = "<p style='color:var(--slate)'>No attendance found.</p>"; return; }
 
     let html = "";
-    data.forEach(a=>{
+    data.forEach(a => {
       const pct = a.attendance;
       const cls = pct<60?'low':pct<75?'medium':'';
       html += `
@@ -193,6 +194,7 @@ function fetchAttendance(){
   });
 }
 
+/* ===== COMPLAINTS BOX ===== */
 function showComplaints(){
   content.innerHTML = `
     <h2 style="font-family:'Playfair Display',serif;color:var(--navy);margin-bottom:8px">📝 Complaints Box</h2>
@@ -203,7 +205,9 @@ function showComplaints(){
   fetch("http://localhost:3000/parent-messages/" + id)
   .then(res => res.json())
   .then(msgs => {
-    const complaints = msgs.filter(m => m.subject && m.subject.toLowerCase().includes('complaint') && m.sender_role === 'mentor');
+    const complaints = msgs.filter(m =>
+      m.subject && m.subject.toLowerCase().includes('complaint') && m.sender_role === 'mentor'
+    );
     if(!complaints.length){
       document.getElementById("complaintsList").innerHTML = `
         <div style="text-align:center;padding:60px 20px;opacity:0.5">
@@ -232,11 +236,11 @@ function showComplaints(){
   });
 }
 
+/* ===== CHAT WITH MENTOR ===== */
 function showChat(){
   content.innerHTML = `
     <h2 style="font-family:'Playfair Display',serif;color:var(--navy);margin-bottom:8px">💬 Chat with Mentor</h2>
     <p style="color:var(--slate);font-size:14px;margin-bottom:20px">Two-way conversation with your child's mentor</p>
-
     <div style="background:#fff;border-radius:var(--radius);padding:24px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm)">
       <div id="parentChatMessages" style="
         min-height:220px;max-height:340px;overflow-y:auto;
@@ -244,7 +248,6 @@ function showChat(){
         border:1px solid #e0e4ef;padding:16px;margin-bottom:16px;">
         <p style="color:var(--slate);font-size:13px;text-align:center">Loading messages...</p>
       </div>
-
       <div style="margin-bottom:12px">
         <textarea id="parentChatInput" rows="3" placeholder="Type your reply to mentor..." style="
           width:100%;padding:14px 16px;border:1px solid #e0e4ef;
@@ -252,7 +255,6 @@ function showChat(){
           font-size:14px;color:var(--navy);background:#fff;
           outline:none;resize:none;box-sizing:border-box"></textarea>
       </div>
-
       <button onclick="sendParentMessage()" style="
         padding:12px 28px;
         background:linear-gradient(135deg,var(--gold),var(--gold-light));
@@ -305,12 +307,11 @@ function loadParentChat(){
 function sendParentMessage(){
   const message = document.getElementById("parentChatInput").value.trim();
   const msgEl   = document.getElementById("parentChatMsg");
-
   if(!message){ msgEl.style.color="var(--danger)"; msgEl.textContent="Please type a message."; return; }
 
   fetch("http://localhost:3000/send-message", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
     body: JSON.stringify({
       student_id:  id,
       mentor_id:   "",
@@ -339,15 +340,80 @@ function sendParentMessage(){
   });
 }
 
+/* ===== INBOX — Events & Updates from Mentor ===== */
 function showInbox(){
   content.innerHTML = `
     <h2 style="font-family:'Playfair Display',serif;color:var(--navy);margin-bottom:8px">📬 Inbox</h2>
-    <p style="color:var(--slate);font-size:14px">College news, events and updates — coming soon!</p>
-    <div style="text-align:center;padding:60px 20px;opacity:0.5">
-      <div style="font-size:48px;margin-bottom:12px">📬</div>
-      <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--navy)">Inbox</div>
-      <div style="margin-top:16px;padding:10px 24px;background:var(--gold-pale);border-radius:40px;display:inline-block;font-size:13px;font-weight:600;color:var(--navy);border:1px solid rgba(201,168,76,0.3)">🚧 Coming Soon</div>
-    </div>`;
+    <p style="color:var(--slate);font-size:14px;margin-bottom:24px">Updates &amp; Events posted by your child's mentor</p>
+
+    <div style="background:var(--white);border-radius:var(--radius);padding:26px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm);max-width:760px">
+      <h3 style="font-family:'Playfair Display',serif;font-size:17px;color:var(--navy);
+        margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--gold)">
+        🔔 Updates &amp; Events from Mentor
+      </h3>
+      <div id="evtViewList">
+        <p style="color:var(--slate);font-size:13px;text-align:center;padding:40px 0;opacity:0.6">Loading...</p>
+      </div>
+    </div>
+  `;
+
+  fetch("http://localhost:3000/events")
+  .then(res => res.json())
+  .then(events => {
+    const list = document.getElementById("evtViewList");
+
+    if(!events || !events.length){
+      list.innerHTML = `
+        <div style="text-align:center;padding:50px 0;opacity:0.5">
+          <div style="font-size:42px">📭</div>
+          <div style="font-size:13px;color:var(--slate);margin-top:10px">No updates posted yet.</div>
+        </div>`;
+      return;
+    }
+
+    let html = "";
+    events.forEach(e => {
+      const dateStr = e.event_date
+        ? new Date(e.event_date).toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" })
+        : "";
+      const timeStr = e.event_time ? formatTime12h(e.event_time) : "";
+      const postedAt = new Date(e.created_at).toLocaleString();
+
+      html += `
+        <div style="background:#f8f9fc;border-radius:var(--radius-sm);
+          padding:18px 20px;margin-bottom:14px;
+          border:1px solid #e0e4ef;border-left:4px solid var(--gold)">
+
+          <div style="font-family:'Playfair Display',serif;font-size:15px;
+            font-weight:700;color:var(--navy);margin-bottom:8px">${e.title}</div>
+
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+            ${dateStr ? `<span style="font-size:11px;font-weight:600;color:#c9a84c;background:#fff8e8;padding:3px 10px;border-radius:20px;border:1px solid rgba(201,168,76,0.3)">📅 ${dateStr}</span>` : ""}
+            ${timeStr ? `<span style="font-size:11px;font-weight:600;color:#3b6ae0;background:#f0f4ff;padding:3px 10px;border-radius:20px;border:1px solid rgba(59,106,224,0.2)">⏰ ${timeStr}</span>` : ""}
+            ${e.venue  ? `<span style="font-size:11px;font-weight:600;color:#27ae60;background:#f0fff4;padding:3px 10px;border-radius:20px;border:1px solid rgba(39,174,96,0.2)">📍 ${e.venue}</span>` : ""}
+          </div>
+
+          ${e.description ? `<div style="font-size:13px;color:#4a5568;line-height:1.6;margin-bottom:8px">${e.description}</div>` : ""}
+          <div style="font-size:11px;color:var(--slate);opacity:0.55">Posted: ${postedAt}</div>
+        </div>`;
+    });
+
+    list.innerHTML = html;
+  })
+  .catch(() => {
+    document.getElementById("evtViewList").innerHTML =
+      "<p style='color:var(--danger);font-size:13px'>Could not load events. Make sure the server is running.</p>";
+  });
+}
+
+/* Helper – "14:30" → "2:30 PM" */
+function formatTime12h(t){
+  if(!t) return "";
+  const [h, m] = t.split(":");
+  const hour = parseInt(h);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const h12  = hour % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
 }
 
 </script>

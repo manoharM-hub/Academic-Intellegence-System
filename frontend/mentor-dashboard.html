@@ -36,6 +36,7 @@
     <button class="sidebar-btn" onclick="loadStudents()">👥 Your Mentees</button>
     <button class="sidebar-btn" onclick="loadReports()">📈 Performance Reports</button>
     <button class="sidebar-btn" onclick="loadResumes()">📄 View Resumes</button>
+    <button class="sidebar-btn" onclick="loadEvents()">🔔 Add Updates/Events</button>
     <button class="sidebar-btn" onclick="loadComplaints()">📝 Add Complaint</button>
     <button class="sidebar-btn chat-btn" onclick="chatParent()">💬 Chat with Parent</button>
   </aside>
@@ -240,71 +241,270 @@ async function loadReports(){
   }
 }
 
+/* ===== RESUMES ===== */
 function loadResumes(){
   document.getElementById("pageTitle").innerText = "View Resumes";
   document.getElementById("pageTitleBtn").innerHTML = "";
-  document.getElementById("studentList").innerHTML = `
-    <div style="
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      padding:80px 40px;text-align:center;
-      background:var(--white);border-radius:var(--radius);
-      border:2px dashed #e0e4ef;box-shadow:var(--shadow-sm)
-    ">
-      <div style="font-size:56px;margin-bottom:20px">📄</div>
-      <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--navy);margin-bottom:10px">
-        Resume Portal
-      </div>
-      <div style="font-size:14px;color:var(--slate);max-width:340px;line-height:1.7">
-        Resume uploads and viewing will be available in a future update. 
-        Students will be able to upload their resumes for mentor review.
-      </div>
-      <div style="
-        margin-top:24px;padding:10px 24px;
-        background:var(--gold-pale);border-radius:40px;
-        font-size:13px;font-weight:600;color:var(--navy);
-        border:1px solid rgba(201,168,76,0.3)
-      ">🚧 Coming Soon</div>
-    </div>
-  `;
+  document.getElementById("studentList").innerHTML = "Loading...";
+
+  fetch("http://localhost:3000/mentor/" + mentorId + "/resumes")
+  .then(res => res.json())
+  .then(list => {
+    if(!list.length){
+      document.getElementById("studentList").innerHTML = "No students found";
+      return;
+    }
+    let html = "";
+    list.forEach(s => {
+      html += `
+        <div class="student-card" style="cursor:default">
+          <div class="s-info">
+            <div class="s-id">${s.id}</div>
+            <div class="s-name-text">${s.name}</div>
+          </div>
+          ${s.resume_file
+            ? `<div style="display:flex;gap:10px;align-items:center">
+                <span style="color:green;font-weight:600">✔ Resume Uploaded</span>
+                <button onclick="openResume('${s.resume_file}')" style="padding:8px 14px;background:var(--navy);color:white;border:none;border-radius:6px;cursor:pointer">View</button>
+                <a href="http://localhost:3000/uploads/${s.resume_file}" download style="padding:8px 14px;background:var(--gold);color:var(--navy);text-decoration:none;border-radius:6px;font-weight:600">Download</a>
+              </div>`
+            : `<span style="color:var(--slate)">No Resume</span>`
+          }
+        </div>
+      `;
+    });
+    document.getElementById("studentList").innerHTML = html;
+  })
+  .catch(()=>{ document.getElementById("studentList").innerHTML = "Error loading resumes"; });
 }
 
+/* ===================================================
+   🔔 ADD UPDATES / EVENTS  — fully wired
+   Endpoints used:
+     POST   /add-event
+     GET    /events/:mentorId
+     DELETE /event/:id
+   =================================================== */
+function loadEvents(){
+  document.getElementById("pageTitle").innerText = "Add Updates / Events";
+  document.getElementById("pageTitleBtn").innerHTML = "";
+
+  document.getElementById("studentList").innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+      <!-- LEFT: Add Event Form -->
+      <div style="background:var(--white);border-radius:var(--radius);padding:26px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm)">
+        <h3 style="font-family:'Playfair Display',serif;font-size:17px;color:var(--navy);margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--gold)">🔔 Post a New Update / Event</h3>
+
+        <div style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:6px">Title *</label>
+          <input id="evtTitle" type="text" placeholder="e.g. Parent-Teacher Meeting" style="${inputStyle()}">
+        </div>
+
+        <div style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:6px">Description</label>
+          <textarea id="evtDesc" rows="4" placeholder="Details about the event or update..." style="${inputStyle()}resize:vertical;"></textarea>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:6px">Date *</label>
+            <input id="evtDate" type="date" style="${inputStyle()}">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:6px">Time</label>
+            <input id="evtTime" type="time" style="${inputStyle()}">
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px">
+          <label style="font-size:12px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:6px">Venue / Location</label>
+          <input id="evtVenue" type="text" placeholder="e.g. Seminar Hall A" style="${inputStyle()}">
+        </div>
+
+        <button onclick="submitEvent()" style="padding:12px 28px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border:none;border-radius:40px;color:var(--navy);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(201,168,76,0.35);">
+          Post Update →
+        </button>
+        <div id="evtMsg" style="margin-top:12px;font-size:13px;font-weight:500"></div>
+      </div>
+
+      <!-- RIGHT: Past Events -->
+      <div style="background:var(--white);border-radius:var(--radius);padding:26px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm);max-height:560px;overflow-y:auto">
+        <h3 style="font-family:'Playfair Display',serif;font-size:17px;color:var(--navy);margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--gold)">📋 Your Posted Events</h3>
+        <div id="evtList"><p style="color:var(--slate);font-size:13px;text-align:center;padding:40px 0;opacity:0.6">Loading...</p></div>
+      </div>
+
+    </div>
+  `;
+
+  fetchPostedEvents();
+}
+
+function inputStyle(){
+  return `width:100%;padding:11px 14px;border:1px solid #e0e4ef;border-radius:var(--radius-sm);
+    font-family:'DM Sans',sans-serif;font-size:14px;color:var(--navy);
+    background:#f8f9fc;outline:none;box-sizing:border-box;`;
+}
+
+function submitEvent(){
+  const title       = document.getElementById("evtTitle").value.trim();
+  const description = document.getElementById("evtDesc").value.trim();
+  const event_date  = document.getElementById("evtDate").value;
+  const event_time  = document.getElementById("evtTime").value;
+  const venue       = document.getElementById("evtVenue").value.trim();
+  const msg         = document.getElementById("evtMsg");
+
+  if(!title){ msg.style.color="var(--danger)"; msg.textContent="⚠️ Title is required."; return; }
+  if(!event_date){ msg.style.color="var(--danger)"; msg.textContent="⚠️ Date is required."; return; }
+
+  msg.style.color = "var(--slate)";
+  msg.textContent = "Posting...";
+
+  fetch("http://localhost:3000/add-event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mentor_id: mentorId, title, description, event_date, event_time, venue })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.success){
+      msg.style.color = "var(--success, #2ecc71)";
+      msg.textContent = "✅ Event posted successfully!";
+      // Clear form
+      document.getElementById("evtTitle").value = "";
+      document.getElementById("evtDesc").value  = "";
+      document.getElementById("evtDate").value  = "";
+      document.getElementById("evtTime").value  = "";
+      document.getElementById("evtVenue").value = "";
+      fetchPostedEvents();
+      setTimeout(() => msg.textContent = "", 3000);
+    } else {
+      msg.style.color = "var(--danger)";
+      msg.textContent = "❌ Failed to post. Try again.";
+    }
+  })
+  .catch(() => {
+    msg.style.color = "var(--danger)";
+    msg.textContent = "❌ Server not responding.";
+  });
+}
+
+function fetchPostedEvents(){
+  const evtList = document.getElementById("evtList");
+  if(!evtList) return;
+
+  evtList.innerHTML = "<p style='color:var(--slate);font-size:13px;text-align:center;padding:30px 0;opacity:0.6'>Loading...</p>";
+
+  fetch("http://localhost:3000/events/" + mentorId)
+  .then(res => res.json())
+  .then(events => {
+    if(!events.length){
+      evtList.innerHTML = `
+        <div style="text-align:center;padding:40px 0;opacity:0.5">
+          <div style="font-size:40px">📭</div>
+          <div style="font-size:13px;color:var(--slate);margin-top:10px">No events posted yet</div>
+        </div>`;
+      return;
+    }
+
+    let html = "";
+    events.forEach(e => {
+      // Format date nicely
+      const dateStr = e.event_date
+        ? new Date(e.event_date).toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" })
+        : "";
+      const timeStr = e.event_time
+        ? formatTime12h(e.event_time)
+        : "";
+      const postedAt = new Date(e.created_at).toLocaleString();
+
+      html += `
+        <div style="background:#f8f9fc;border-radius:var(--radius-sm);padding:16px 18px;margin-bottom:14px;border:1px solid #e0e4ef;border-left:4px solid var(--gold);position:relative">
+
+          <!-- Delete btn -->
+          <button onclick="deleteEvent(${e.id})" title="Delete event" style="
+            position:absolute;top:12px;right:12px;
+            background:none;border:none;cursor:pointer;
+            font-size:16px;opacity:0.45;transition:opacity 0.2s"
+            onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.45'">🗑️</button>
+
+          <!-- Title -->
+          <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px;padding-right:28px">${e.title}</div>
+
+          <!-- Meta pills -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+            ${dateStr ? `<span style="${pillStyle('#fff8e8','var(--gold)')}">📅 ${dateStr}</span>` : ""}
+            ${timeStr ? `<span style="${pillStyle('#f0f4ff','#3b6ae0')}">⏰ ${timeStr}</span>` : ""}
+            ${e.venue ? `<span style="${pillStyle('#f0fff4','#27ae60')}">📍 ${e.venue}</span>` : ""}
+          </div>
+
+          ${e.description ? `<div style="font-size:13px;color:#4a5568;line-height:1.55;margin-bottom:8px">${e.description}</div>` : ""}
+          <div style="font-size:11px;color:var(--slate);opacity:0.6">Posted: ${postedAt}</div>
+        </div>
+      `;
+    });
+
+    evtList.innerHTML = html;
+  })
+  .catch(() => {
+    evtList.innerHTML = "<p style='color:var(--danger);font-size:13px'>Could not load events.</p>";
+  });
+}
+
+function deleteEvent(id){
+  if(!confirm("Delete this event? Students and parents will no longer see it.")) return;
+
+  fetch("http://localhost:3000/event/" + id, { method: "DELETE" })
+  .then(res => res.json())
+  .then(data => {
+    if(data.success) fetchPostedEvents();
+    else alert("Could not delete event.");
+  })
+  .catch(() => alert("Server not responding."));
+}
+
+function pillStyle(bg, color){
+  return `font-size:11px;font-weight:600;color:${color};background:${bg};
+    padding:3px 10px;border-radius:20px;border:1px solid ${color}33;`;
+}
+
+function formatTime12h(t){
+  if(!t) return "";
+  const [h, m] = t.split(":");
+  const hour = parseInt(h);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const h12 = hour % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
+}
+
+/* ===== COMPLAINTS ===== */
 function loadComplaints(){
   document.getElementById("pageTitle").innerText = "Add Complaint";
   document.getElementById("pageTitleBtn").innerHTML = `
     <button onclick="togglePastComplaints()" id="pastBtn" style="
-      padding:9px 20px;
-      background:transparent;
+      padding:9px 20px;background:transparent;
       border:1.5px solid var(--gold);border-radius:40px;
       color:var(--navy);font-family:'DM Sans',sans-serif;
-      font-size:13px;font-weight:600;cursor:pointer;
-      transition:var(--transition);">
+      font-size:13px;font-weight:600;cursor:pointer;transition:var(--transition);">
       📋 View Past Complaints
     </button>`;
 
-  // First fetch mentees list to populate student selector
   fetch("http://localhost:3000/mentor/" + mentorId + "/students")
   .then(res => res.json())
   .then(list => {
-
     let options = '<option value="">-- Select Student --</option>';
-    list.forEach(s => {
-      options += `<option value="${s.id}">${s.id} — ${s.name}</option>`;
-    });
+    list.forEach(s => { options += `<option value="${s.id}">${s.id} — ${s.name}</option>`; });
 
     document.getElementById("studentList").innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
-
-        <!-- LEFT: Register -->
         <div style="background:var(--white);border-radius:var(--radius);padding:26px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm)">
           <h3 style="font-family:'Playfair Display',serif;font-size:17px;color:var(--navy);margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--gold)">📝 Register a Complaint</h3>
-
           <div style="margin-bottom:16px">
             <label style="font-size:12px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:8px">Select Student</label>
             <select id="complaintStudent" onchange="onStudentSelect()" style="width:100%;padding:11px 14px;border:1px solid #e0e4ef;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--navy);background:#f8f9fc;outline:none">
               ${options}
             </select>
           </div>
-
           <div id="complaintForm" style="display:none">
             <div style="margin-bottom:16px">
               <label style="font-size:12px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:8px">Complaint Type</label>
@@ -327,13 +527,10 @@ function loadComplaints(){
             <div id="complaintMsg" style="margin-top:12px;font-size:13px;font-weight:500"></div>
           </div>
         </div>
-
-        <!-- RIGHT: Past Complaints -->
         <div style="background:var(--white);border-radius:var(--radius);padding:26px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm);max-height:520px;overflow-y:auto">
           <h3 style="font-family:'Playfair Display',serif;font-size:17px;color:var(--navy);margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--gold)">📋 Past Complaints</h3>
           <div id="pastComplaintsList"><p style="color:var(--slate);font-size:13px;text-align:center;padding:40px 0;opacity:0.6">Loading...</p></div>
         </div>
-
       </div>
     `;
     loadAllPastComplaints();
@@ -342,20 +539,16 @@ function loadComplaints(){
 
 function loadAllPastComplaints(){
   document.getElementById("pastComplaintsList").innerHTML = "<p style='color:var(--slate);font-size:13px;text-align:center;padding:40px 0;opacity:0.6'>Loading...</p>";
-
   fetch("http://localhost:3000/mentor/" + mentorId + "/students")
   .then(res => res.json())
   .then(students => {
-    const promises = students.map(s =>
-      fetch("http://localhost:3000/parent-messages/" + s.id).then(r => r.json())
-    );
+    const promises = students.map(s => fetch("http://localhost:3000/parent-messages/" + s.id).then(r => r.json()));
     return Promise.all(promises);
   })
   .then(allMsgs => {
     const complaints = allMsgs.flat().filter(m =>
       m.subject && m.subject.toLowerCase().includes('complaint') &&
-      m.sender_role === 'mentor' &&
-      m.mentor_id === mentorId
+      m.sender_role === 'mentor' && m.mentor_id === mentorId
     ).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
 
     if(!complaints.length){
@@ -366,7 +559,6 @@ function loadAllPastComplaints(){
         </div>`;
       return;
     }
-
     let html = "";
     complaints.forEach(m => {
       const time = new Date(m.created_at).toLocaleString();
@@ -387,70 +579,6 @@ function loadAllPastComplaints(){
   });
 }
 
-function togglePastComplaints(){
-  const div = document.getElementById("pastComplaints");
-  const btn = document.getElementById("pastBtn");
-  const isVisible = div.style.display === "block";
-
-  if(isVisible){
-    div.style.display = "none";
-    btn.textContent = "📋 View Past Complaints";
-    return;
-  }
-
-  div.style.display = "block";
-  btn.textContent = "🔼 Hide Past Complaints";
-  document.getElementById("pastComplaintsList").innerHTML = "<p style='color:var(--slate);font-size:13px'>Loading...</p>";
-
-  // Fetch all complaints by this mentor
-  fetch("http://localhost:3000/mentor/" + mentorId + "/students")
-  .then(res => res.json())
-  .then(students => {
-    // Get all student IDs
-    const ids = students.map(s => s.id);
-    // Fetch messages for each student and filter complaints
-    const promises = ids.map(id =>
-      fetch("http://localhost:3000/parent-messages/" + id).then(r => r.json())
-    );
-    return Promise.all(promises);
-  })
-  .then(allMsgs => {
-    // Flatten and filter only complaints by this mentor
-    const complaints = allMsgs.flat().filter(m =>
-      m.subject && m.subject.toLowerCase().includes('complaint') &&
-      m.sender_role === 'mentor' &&
-      m.mentor_id === mentorId
-    ).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-
-    if(!complaints.length){
-      document.getElementById("pastComplaintsList").innerHTML = `
-        <div style="text-align:center;padding:30px;opacity:0.5">
-          <div style="font-size:36px">📭</div>
-          <div style="font-size:13px;color:var(--slate);margin-top:8px">No complaints filed yet</div>
-        </div>`;
-      return;
-    }
-
-    let html = "";
-    complaints.forEach(m => {
-      const time = new Date(m.created_at).toLocaleString();
-      html += `
-        <div style="background:#f8f9fc;border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:12px;border:1px solid #e0e4ef;border-left:4px solid var(--gold)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <span style="font-size:12px;font-weight:700;color:var(--navy);background:#fff8e8;padding:3px 10px;border-radius:20px;border:1px solid rgba(201,168,76,0.3)">${m.subject}</span>
-            <span style="font-size:11px;color:var(--slate)">${time}</span>
-          </div>
-          <div style="font-size:13px;color:var(--navy);margin-bottom:4px">👤 Student: <b>${m.student_id}</b></div>
-          <div style="font-size:13px;color:#4a5568;line-height:1.5">${m.message}</div>
-        </div>`;
-    });
-    document.getElementById("pastComplaintsList").innerHTML = html;
-  })
-  .catch(() => {
-    document.getElementById("pastComplaintsList").innerHTML = "<p style='color:var(--danger)'>Could not load complaints.</p>";
-  });
-}
-
 function onStudentSelect(){
   const val = document.getElementById("complaintStudent").value;
   document.getElementById("complaintForm").style.display = val ? "block" : "none";
@@ -458,10 +586,10 @@ function onStudentSelect(){
 }
 
 function submitComplaint(){
-  const studentId  = document.getElementById("complaintStudent").value;
-  const type       = document.getElementById("complaintType").value;
-  const text       = document.getElementById("complaintText").value.trim();
-  const msg        = document.getElementById("complaintMsg");
+  const studentId = document.getElementById("complaintStudent").value;
+  const type      = document.getElementById("complaintType").value;
+  const text      = document.getElementById("complaintText").value.trim();
+  const msg       = document.getElementById("complaintMsg");
 
   if(!studentId){ msg.style.color="var(--danger)"; msg.textContent="Please select a student."; return; }
   if(!type)     { msg.style.color="var(--danger)"; msg.textContent="Please select a complaint type."; return; }
@@ -470,14 +598,7 @@ function submitComplaint(){
   fetch("http://localhost:3000/send-message", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      student_id:  studentId,
-      mentor_id:   mentorId,
-      parent_id:   studentId,
-      subject:     type + " Complaint",
-      message:     text,
-      sender_role: "mentor"
-    })
+    body: JSON.stringify({ student_id:studentId, mentor_id:mentorId, parent_id:studentId, subject:type+" Complaint", message:text, sender_role:"mentor" })
   })
   .then(res => res.json())
   .then(data => {
@@ -489,18 +610,12 @@ function submitComplaint(){
       document.getElementById("complaintStudent").value = "";
       document.getElementById("complaintForm").style.display = "none";
       loadAllPastComplaints();
-    } else {
-      msg.style.color = "var(--danger)";
-      msg.textContent = "❌ Failed to submit. Try again.";
-    }
+    } else { msg.style.color = "var(--danger)"; msg.textContent = "❌ Failed. Try again."; }
   })
-  .catch(() => {
-    msg.style.color = "var(--danger)";
-    msg.textContent = "❌ Server not responding.";
-  });
+  .catch(() => { msg.style.color = "var(--danger)"; msg.textContent = "❌ Server not responding."; });
 }
 
-function openStudent(id){ localStorage.setItem("viewStudent", id); window.location="mentor-student.html"; }
+/* ===== CHAT WITH PARENT ===== */
 function chatParent(){
   document.getElementById("pageTitle").innerText = "Chat with Parent";
   document.getElementById("pageTitleBtn").innerHTML = "";
@@ -508,48 +623,24 @@ function chatParent(){
   fetch("http://localhost:3000/mentor/" + mentorId + "/students")
   .then(res => res.json())
   .then(list => {
-
     let options = '<option value="">-- Select Student --</option>';
-    list.forEach(s => {
-      options += `<option value="${s.id}">${s.id} — ${s.name}</option>`;
-    });
+    list.forEach(s => { options += `<option value="${s.id}">${s.id} — ${s.name}</option>`; });
 
     document.getElementById("studentList").innerHTML = `
       <div style="background:var(--white);border-radius:var(--radius);padding:30px;border:1px solid #e8ebf5;box-shadow:var(--shadow-sm)">
-
         <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:var(--navy);margin-bottom:22px">💬 Chat with Parent</h3>
-
         <div style="margin-bottom:20px">
           <label style="font-size:13px;font-weight:600;color:var(--slate);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:8px">Select Student</label>
           <select id="chatStudent" onchange="loadChatHistory()" style="width:100%;padding:12px 16px;border:1px solid #e0e4ef;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--navy);background:#f8f9fc;outline:none">
             ${options}
           </select>
         </div>
-
-        <!-- Chat history -->
         <div id="chatHistory" style="display:none">
-          <div id="chatMessages" style="
-            min-height:200px;max-height:320px;overflow-y:auto;
-            background:#f8f9fc;border-radius:var(--radius-sm);
-            border:1px solid #e0e4ef;padding:16px;margin-bottom:16px;
-          "></div>
-
+          <div id="chatMessages" style="min-height:200px;max-height:320px;overflow-y:auto;background:#f8f9fc;border-radius:var(--radius-sm);border:1px solid #e0e4ef;padding:16px;margin-bottom:16px;"></div>
           <div style="margin-bottom:12px">
-            <textarea id="chatInput" rows="3" placeholder="Type your message to parent..." style="
-              width:100%;padding:14px 16px;border:1px solid #e0e4ef;
-              border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;
-              font-size:14px;color:var(--navy);background:#fff;
-              outline:none;resize:none;box-sizing:border-box"></textarea>
+            <textarea id="chatInput" rows="3" placeholder="Type your message to parent..." style="width:100%;padding:14px 16px;border:1px solid #e0e4ef;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--navy);background:#fff;outline:none;resize:none;box-sizing:border-box"></textarea>
           </div>
-
-          <button onclick="sendChatMessage()" style="
-            padding:12px 28px;
-            background:linear-gradient(135deg,var(--gold),var(--gold-light));
-            border:none;border-radius:40px;color:var(--navy);
-            font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;
-            cursor:pointer;box-shadow:0 4px 14px rgba(201,168,76,0.35);">
-            Send Message →
-          </button>
+          <button onclick="sendChatMessage()" style="padding:12px 28px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border:none;border-radius:40px;color:var(--navy);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(201,168,76,0.35);">Send Message →</button>
           <span id="chatMsg" style="margin-left:16px;font-size:13px;font-weight:500"></span>
         </div>
       </div>
@@ -560,7 +651,6 @@ function chatParent(){
 function loadChatHistory(){
   const studentId = document.getElementById("chatStudent").value;
   if(!studentId){ document.getElementById("chatHistory").style.display="none"; return; }
-
   document.getElementById("chatHistory").style.display = "block";
   document.getElementById("chatMessages").innerHTML = "<p style='color:var(--slate);font-size:13px'>Loading...</p>";
 
@@ -569,23 +659,14 @@ function loadChatHistory(){
   .then(msgs => {
     msgs = msgs.filter(m => m.subject === 'Chat');
     msgs.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-    if(!msgs.length){
-      document.getElementById("chatMessages").innerHTML = "<p style='color:var(--slate);font-size:13px;text-align:center'>No messages yet. Start the conversation!</p>";
-      return;
-    }
+    if(!msgs.length){ document.getElementById("chatMessages").innerHTML = "<p style='color:var(--slate);font-size:13px;text-align:center'>No messages yet. Start the conversation!</p>"; return; }
     let html = "";
     msgs.forEach(m => {
       const isMentor = m.sender_role === "mentor";
       const time = new Date(m.created_at).toLocaleString();
       html += `
         <div style="display:flex;justify-content:${isMentor?'flex-end':'flex-start'};margin-bottom:12px">
-          <div style="
-            max-width:70%;padding:10px 14px;
-            background:${isMentor?'var(--navy)':'#fff'};
-            color:${isMentor?'#fff':'var(--navy)'};
-            border-radius:${isMentor?'16px 16px 4px 16px':'16px 16px 16px 4px'};
-            border:1px solid ${isMentor?'transparent':'#e0e4ef'};
-            box-shadow:0 2px 6px rgba(0,0,0,0.06)">
+          <div style="max-width:70%;padding:10px 14px;background:${isMentor?'var(--navy)':'#fff'};color:${isMentor?'#fff':'var(--navy)'};border-radius:${isMentor?'16px 16px 4px 16px':'16px 16px 16px 4px'};border:1px solid ${isMentor?'transparent':'#e0e4ef'};box-shadow:0 2px 6px rgba(0,0,0,0.06)">
             <div style="font-size:11px;color:${isMentor?'var(--gold)':'var(--slate)'};margin-bottom:4px;font-weight:600">${isMentor?'You (Mentor)':'Parent'}</div>
             <div style="font-size:13px;line-height:1.5">${m.message}</div>
             <div style="font-size:10px;color:${isMentor?'rgba(255,255,255,0.5)':'var(--slate)'};margin-top:4px;text-align:right">${time}</div>
@@ -602,20 +683,12 @@ function sendChatMessage(){
   const studentId = document.getElementById("chatStudent").value;
   const message   = document.getElementById("chatInput").value.trim();
   const msgEl     = document.getElementById("chatMsg");
-
   if(!message){ msgEl.style.color="var(--danger)"; msgEl.textContent="Please type a message."; return; }
 
   fetch("http://localhost:3000/send-message", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      student_id:  studentId,
-      mentor_id:   mentorId,
-      parent_id:   studentId,
-      subject:     "Chat",
-      message:     message,
-      sender_role: "mentor"
-    })
+    body: JSON.stringify({ student_id:studentId, mentor_id:mentorId, parent_id:studentId, subject:"Chat", message:message, sender_role:"mentor" })
   })
   .then(res => res.json())
   .then(data => {
@@ -625,16 +698,14 @@ function sendChatMessage(){
       msgEl.textContent = "✅ Sent!";
       setTimeout(() => msgEl.textContent = "", 2000);
       loadChatHistory();
-    } else {
-      msgEl.style.color = "var(--danger)";
-      msgEl.textContent = "❌ Failed. Try again.";
-    }
+    } else { msgEl.style.color = "var(--danger)"; msgEl.textContent = "❌ Failed. Try again."; }
   })
-  .catch(() => {
-    msgEl.style.color = "var(--danger)";
-    msgEl.textContent = "❌ Server not responding.";
-  });
+  .catch(() => { msgEl.style.color = "var(--danger)"; msgEl.textContent = "❌ Server not responding."; });
 }
+
+/* ===== UTILS ===== */
+function openStudent(id){ localStorage.setItem("viewStudent", id); window.location="mentor-student.html"; }
+function openResume(file){ window.open("http://localhost:3000/uploads/" + file); }
 function logout(){ localStorage.clear(); window.location="login.html"; }
 
 </script>

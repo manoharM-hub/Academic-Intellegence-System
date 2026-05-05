@@ -26,9 +26,11 @@
 <!-- NAV TABS -->
 <nav class="nav-tabs">
   <button class="nav-tab active" onclick="openSection('info', this)">📋 My Profile</button>
-  <button class="nav-tab" onclick="openSection('marks', this)">📊 Marks</button>
+  <button class="nav-tab" onclick="openSection('marks', this)">📊 Semester Marks</button>
+  <button class="nav-tab" onclick="openSection('unit', this)">📝 Unit/Mid Marks</button>
   <button class="nav-tab" onclick="openSection('attendance', this)">📅 Attendance</button>
   <button class="nav-tab" onclick="openSection('resume', this)">📄 Upload Resume</button>
+  <button class="nav-tab" onclick="openSection('Updates', this)">📬 Inbox</button>
 </nav>
 
 <!-- MAIN -->
@@ -37,7 +39,7 @@
   <!-- WELCOME BANNER -->
   <div class="welcome-banner">
     <h2>Welcome back, <span id="welcome">...</span></h2>
-    <p>Your personal information as per institution's records is shown below. Please verify your details and contact your mentor if you notice any discrepancy.</p>
+    <p>Your personal information as per institution's records is shown in Profile Section. Please verify your details and contact your mentor if you notice any discrepancy.</p>
   </div>
 
   <!-- PROFILE SECTION -->
@@ -71,18 +73,31 @@
     </select>
     <div id="marksResult" style="margin-top:24px;"></div>
 
-    <div id="printBtnWrapper" style="display:none;text-align:right;margin-top:16px;">
-      <button onclick="printMarks()" style="
-        padding:10px 24px;
-        background:linear-gradient(135deg,var(--gold),var(--gold-light));
-        border:none;border-radius:40px;
-        color:var(--navy);font-family:'DM Sans',sans-serif;
-        font-size:14px;font-weight:700;cursor:pointer;
-        box-shadow:0 4px 14px rgba(201,168,76,0.35);
-        transition:var(--transition);">
-        🖨️ Print Marks
-      </button>
+    <div id="printBtnWrapper" style="display:none;margin-top:20px;">
+      <div id="gpaCards" style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;"></div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;">
+        <button onclick="calculateSGPA()" style="padding:10px 24px;background:#1e2d45;border:none;border-radius:40px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.2);transition:var(--transition);">📊 SGPA for this Semester</button>
+        <button onclick="calculateCGPA()" style="padding:10px 24px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border:none;border-radius:40px;color:var(--navy);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(201,168,76,0.35);transition:var(--transition);">🎓 Overall CGPA</button>
+        <button onclick="printMarks()" style="padding:10px 24px;background:transparent;border:1.5px solid #1e2d45;border-radius:40px;color:var(--navy);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:var(--transition);">🖨️ Print Marks</button>
+      </div>
     </div>
+  </div>
+
+  <!-- UNIT MARKS SECTION -->
+  <div id="unitSection" class="section-panel">
+    <h3>📝 Unit / Mid Marks</h3>
+    <select id="unitSem" onchange="loadUnitMarks()">
+      <option value="">Select Semester</option>
+      <option value="1">Semester 1</option>
+      <option value="2">Semester 2</option>
+      <option value="3">Semester 3</option>
+      <option value="4">Semester 4</option>
+      <option value="5">Semester 5</option>
+      <option value="6">Semester 6</option>
+      <option value="7">Semester 7</option>
+      <option value="8">Semester 8</option>
+    </select>
+    <div id="unitResult" style="margin-top:24px;"></div>
   </div>
 
   <!-- ATTENDANCE SECTION -->
@@ -94,6 +109,10 @@
       <option value="2">Semester 2</option>
       <option value="3">Semester 3</option>
       <option value="4">Semester 4</option>
+      <option value="5">Semester 5</option>
+      <option value="6">Semester 6</option>
+      <option value="7">Semester 7</option>
+      <option value="8">Semester 8</option>
     </select>
     <div id="attResult" style="margin-top:24px;"></div>
   </div>
@@ -103,11 +122,7 @@
     <h3>📄 Upload Resume</h3>
     <div class="info-card" style="margin-top:16px">
       <h3>📎 Resume Submission</h3>
-
-      <div id="resumeUploadBox" style="
-        border:2px dashed #e0e4ef;border-radius:var(--radius);
-        padding:50px 30px;text-align:center;background:#f8f9fc;
-        cursor:pointer;transition:var(--transition);"
+      <div id="resumeUploadBox" style="border:2px dashed #e0e4ef;border-radius:var(--radius);padding:50px 30px;text-align:center;background:#f8f9fc;cursor:pointer;transition:var(--transition);"
         onclick="document.getElementById('resumeFile').click()"
         ondragover="event.preventDefault();this.style.borderColor='var(--gold)'"
         ondragleave="this.style.borderColor='#e0e4ef'"
@@ -117,9 +132,7 @@
         <div style="font-size:13px;color:var(--slate);margin-bottom:20px">Supported formats: PDF, DOC, DOCX (Max 5MB)</div>
         <div style="display:inline-block;padding:10px 28px;background:var(--navy);color:var(--gold);border-radius:40px;font-size:14px;font-weight:600;border:1px solid rgba(201,168,76,0.3)">Browse File</div>
       </div>
-
       <input type="file" id="resumeFile" accept=".pdf,.doc,.docx" style="display:none" onchange="handleFileSelect(this)">
-
       <div id="fileInfo" style="display:none;margin-top:20px;padding:16px 20px;background:#f0f4ff;border-radius:var(--radius-sm);border:1px solid #d0d8f0;align-items:center;justify-content:space-between">
         <div>
           <div style="font-weight:600;color:var(--navy)" id="fileName"></div>
@@ -127,17 +140,24 @@
         </div>
         <button onclick="clearFile()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:18px">✕</button>
       </div>
-
-      <button id="uploadBtn" onclick="uploadResume()" style="
-        display:none;margin-top:20px;width:100%;padding:14px;
-        background:linear-gradient(135deg,var(--gold),var(--gold-light));
-        border:none;border-radius:var(--radius-sm);color:var(--navy);
-        font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;
-        cursor:pointer;box-shadow:0 6px 20px rgba(201,168,76,0.3);transition:var(--transition);">
+      <button id="uploadBtn" onclick="uploadResume()" style="display:none;margin-top:20px;width:100%;padding:14px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border:none;border-radius:var(--radius-sm);color:var(--navy);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(201,168,76,0.3);transition:var(--transition);">
         Upload Resume ↑
       </button>
-
       <div id="uploadMsg" style="margin-top:14px;text-align:center;font-size:14px;font-weight:500"></div>
+    </div>
+  </div>
+
+  <!-- ✅ UPDATES / EVENTS SECTION -->
+  <div id="UpdatesSection" class="section-panel">
+    <h3 style="font-family:'Playfair Display',serif;color:var(--navy);margin-bottom:6px">🔔 Updates &amp; Events</h3>
+    <p style="color:var(--slate);font-size:14px;margin-bottom:24px">Latest updates and events posted by your mentor</p>
+
+    <div style="max-width:760px">
+      <div id="evtViewList">
+        <div class="loading-skeleton" style="height:100px;border-radius:var(--radius);margin-bottom:12px"></div>
+        <div class="loading-skeleton" style="height:100px;border-radius:var(--radius);margin-bottom:12px"></div>
+        <div class="loading-skeleton" style="height:100px;border-radius:var(--radius)"></div>
+      </div>
     </div>
   </div>
 
@@ -147,31 +167,28 @@
 const id = localStorage.getItem("studentId");
 if(!id){ alert("Login again"); window.location="login.html"; }
 
-/* Load student info */
-fetch("http://localhost:3000/student/"+id)
-.then(res=>res.json())
-.then(data=>{
+/* ===== LOAD STUDENT INFO ===== */
+fetch("http://localhost:3000/student/" + id)
+.then(res => res.json())
+.then(data => {
   if(!data) return;
-
   document.getElementById("welcome").innerHTML = `<span style="color:var(--gold)">${data.name}</span>`;
   document.getElementById("headerStudentName").textContent = data.name;
-
   const fields = [
-    ["Student Name", data.name],
-    ["Roll Number", data.roll],
-    ["Gender", data.gender],
+    ["Student Name",  data.name],
+    ["Roll Number",   data.roll],
+    ["Gender",        data.gender],
     ["Father's Name", data.father],
     ["Mother's Name", data.mother],
     ["Date of Birth", data.dob],
-    ["Degree", data.degree],
-    ["Branch", data.branch],
-    ["Community", data.community],
-    ["Religion", data.religion],
-    ["Nationality", data.nationality],
-    ["Aadhaar Number", data.aadhaar],
+    ["Degree",        data.degree],
+    ["Branch",        data.branch],
+    ["Community",     data.community],
+    ["Religion",      data.religion],
+    ["Nationality",   data.nationality],
+    ["Aadhaar Number",data.aadhaar],
     ["Mobile Number", data.mobile],
   ];
-
   document.getElementById("info").innerHTML = fields.map(([label, val]) => `
     <div class="info-item">
       <div class="info-label">${label}</div>
@@ -179,46 +196,113 @@ fetch("http://localhost:3000/student/"+id)
     </div>
   `).join('');
 })
-.catch(()=>{
-  document.getElementById("welcome").textContent = "Could not load data";
-});
+.catch(() => { document.getElementById("welcome").textContent = "Could not load data"; });
 
-/* Section switching */
+/* ===== SECTION SWITCHING ===== */
 function openSection(type, btn) {
-  document.querySelectorAll('.section-panel').forEach(s => {
-    s.classList.remove('active');
-  });
+  document.querySelectorAll('.section-panel').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-
   const target = document.getElementById(type + 'Section');
-  // Restart animation by removing and re-adding active
   target.classList.remove('active');
-  void target.offsetWidth; // force reflow — restarts animation
+  void target.offsetWidth;
   target.classList.add('active');
-
   if(btn) btn.classList.add('active');
-  document.getElementById("printBtnWrapper").style.display = "none";
+  if(type !== 'marks') document.getElementById("printBtnWrapper").style.display = "none";
+
+  // Auto-load events when tab is clicked
+  if(type === 'Updates') loadEvents();
 }
 
-/* Marks */
+/* ===== UPDATES / EVENTS ===== */
+function loadEvents(){
+  const list = document.getElementById("evtViewList");
+  list.innerHTML = `
+    <div class="loading-skeleton" style="height:100px;border-radius:var(--radius);margin-bottom:12px"></div>
+    <div class="loading-skeleton" style="height:100px;border-radius:var(--radius);margin-bottom:12px"></div>
+    <div class="loading-skeleton" style="height:100px;border-radius:var(--radius)"></div>
+  `;
+
+  fetch("http://localhost:3000/events")
+  .then(res => res.json())
+  .then(events => {
+    if(!events || !events.length){
+      list.innerHTML = `
+        <div style="text-align:center;padding:60px 20px;opacity:0.5">
+          <div style="font-size:48px;margin-bottom:12px">📭</div>
+          <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--navy)">No updates yet</div>
+          <div style="font-size:13px;color:var(--slate);margin-top:6px">Your mentor hasn't posted any events yet</div>
+        </div>`;
+      return;
+    }
+
+    let html = "";
+    events.forEach(e => {
+      const dateStr = e.event_date
+        ? new Date(e.event_date).toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" })
+        : "";
+      const timeStr = e.event_time ? formatTime12h(e.event_time) : "";
+      const postedAt = new Date(e.created_at).toLocaleString();
+
+      html += `
+        <div style="background:#fff;border-radius:var(--radius);padding:20px 24px;
+          margin-bottom:14px;border:1px solid #e8ebf5;
+          border-left:4px solid var(--gold);
+          box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+          <div style="font-family:'Playfair Display',serif;font-size:16px;
+            font-weight:700;color:var(--navy);margin-bottom:10px">${e.title}</div>
+
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            ${dateStr ? `<span style="font-size:11px;font-weight:600;color:#c9a84c;
+              background:#fff8e8;padding:4px 12px;border-radius:20px;
+              border:1px solid rgba(201,168,76,0.3)">📅 ${dateStr}</span>` : ""}
+            ${timeStr ? `<span style="font-size:11px;font-weight:600;color:#3b6ae0;
+              background:#f0f4ff;padding:4px 12px;border-radius:20px;
+              border:1px solid rgba(59,106,224,0.2)">⏰ ${timeStr}</span>` : ""}
+            ${e.venue  ? `<span style="font-size:11px;font-weight:600;color:#27ae60;
+              background:#f0fff4;padding:4px 12px;border-radius:20px;
+              border:1px solid rgba(39,174,96,0.2)">📍 ${e.venue}</span>` : ""}
+          </div>
+
+          ${e.description
+            ? `<div style="font-size:14px;color:#4a5568;line-height:1.65;margin-bottom:10px">${e.description}</div>`
+            : ""}
+
+          <div style="font-size:11px;color:var(--slate);opacity:0.6">Posted: ${postedAt}</div>
+        </div>`;
+    });
+
+    list.innerHTML = html;
+  })
+  .catch(() => {
+    list.innerHTML = "<p style='color:var(--danger);font-size:13px'>Could not load events. Make sure the server is running.</p>";
+  });
+}
+
+/* Helper – "14:30" → "2:30 PM" */
+function formatTime12h(t){
+  if(!t) return "";
+  const [h, m] = t.split(":");
+  const hour = parseInt(h);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const h12  = hour % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
+}
+
+/* ===== SEMESTER MARKS ===== */
 function loadMarksFromSelect() {
   const sem = document.getElementById("marksSem").value;
   if(!sem) return;
-
   document.getElementById("marksResult").innerHTML = '<div class="loading-skeleton" style="height:200px;"></div>';
   document.getElementById("printBtnWrapper").style.display = "none";
-
   fetch(`http://localhost:3000/results/${id}/${sem}`)
-  .then(res=>res.json())
-  .then(data=>{
-    if(!data.length){ document.getElementById("marksResult").innerHTML="<p style='color:var(--slate)'>No records found for this semester.</p>"; return; }
-
-    let html = `<table class="results-table">
-      <thead><tr>
-        <th>#</th><th>Course Code</th><th>Course Name</th><th>Result</th><th>Grade</th>
-      </tr></thead><tbody>`;
-
-    data.forEach((row,i)=>{
+  .then(res => res.json())
+  .then(data => {
+    if(!data.length){ document.getElementById("marksResult").innerHTML = "<p style='color:var(--slate)'>No records found for this semester.</p>"; return; }
+    let html = `<table class="results-table"><thead><tr>
+      <th>#</th><th>Course Code</th><th>Course Name</th><th>Result</th><th>Grade</th>
+    </tr></thead><tbody>`;
+    data.forEach((row,i) => {
       html += `<tr>
         <td>${i+1}</td>
         <td style="font-family:monospace;font-size:13px">${row.course_code}</td>
@@ -227,40 +311,75 @@ function loadMarksFromSelect() {
         <td><span class="grade-badge grade-${row.grade}">${row.grade}</span></td>
       </tr>`;
     });
-
     html += "</tbody></table>";
     document.getElementById("marksResult").innerHTML = html;
     document.getElementById("printBtnWrapper").style.display = "block";
   });
 }
 
-/* Attendance */
+/* ===== UNIT MARKS ===== */
+function loadUnitMarks() {
+  const sem = document.getElementById("unitSem").value;
+  if(!sem) return;
+  document.getElementById("unitResult").innerHTML = '<div class="loading-skeleton" style="height:200px;"></div>';
+
+  fetch(`http://localhost:3000/unit-marks/${id}/${sem}`)
+  .then(res => res.json())
+  .then(data => {
+    if(!data.length){ document.getElementById("unitResult").innerHTML = "<p style='color:var(--slate)'>No unit marks found for this semester.</p>"; return; }
+    let html = `<table class="results-table">
+      <thead><tr>
+        <th>#</th><th>Course Code</th><th>Course Name</th>
+        <th>Unit 1</th><th>Unit 2</th><th>Unit 3</th><th>Average(30)</th>
+      </tr></thead><tbody>`;
+    data.forEach((row, i) => {
+      const avg   = ((row.unit1||0) + (row.unit2||0) + (row.unit3||0)) / 3;
+      const total = Math.floor(avg * 10) / 10;
+      const totalColor = total >= 20 ? 'var(--success)' : total >= 15 ? 'var(--warning)' : 'var(--danger)';
+      html += `<tr>
+        <td>${i+1}</td>
+        <td style="font-family:monospace;font-size:13px">${row.course_code}</td>
+        <td>${row.course_name}</td>
+        <td style="text-align:center;font-weight:600">${row.unit1 ?? '—'}</td>
+        <td style="text-align:center;font-weight:600">${row.unit2 ?? '—'}</td>
+        <td style="text-align:center;font-weight:600">${row.unit3 ?? '—'}</td>
+        <td style="text-align:center;font-weight:700;color:${totalColor}">${total}</td>
+      </tr>`;
+    });
+    html += "</tbody></table>";
+    document.getElementById("unitResult").innerHTML = html;
+  })
+  .catch(() => { document.getElementById("unitResult").innerHTML = "<p style='color:var(--danger)'>Failed to load unit marks.</p>"; });
+}
+
+/* ===== ATTENDANCE ===== */
 function loadAttFromSelect() {
   const sem = document.getElementById("attSem").value;
   if(!sem) return;
-
   document.getElementById("attResult").innerHTML = '<div class="loading-skeleton" style="height:150px;"></div>';
-
   fetch(`http://localhost:3000/attendance/${id}/${sem}`)
-  .then(res=>res.json())
-  .then(data=>{
-    if(!data.length){ document.getElementById("attResult").innerHTML="<p style='color:var(--slate)'>No attendance records found.</p>"; return; }
-
-    let html = "";
-    data.forEach(row=>{
-      const pct = row.attendance;
-      const cls = pct < 60 ? 'low' : pct < 75 ? 'medium' : '';
-      html += `
-        <div class="att-item">
-          <div class="att-header">
-            <span>${row.subject}</span>
-            <span style="color:${pct<75?'var(--danger)':'var(--success)'}; font-weight:600">${pct}%</span>
-          </div>
-          <div class="att-bar-bg">
-            <div class="att-bar-fill ${cls}" style="width:${pct}%"></div>
-          </div>
-        </div>`;
+  .then(res => res.json())
+  .then(data => {
+    if(!data.length){ document.getElementById("attResult").innerHTML = "<p style='color:var(--slate)'>No attendance records found.</p>"; return; }
+    let html = `
+      <table style="width:100%;border-collapse:collapse;border:2px solid #ccc;">
+        <tr style="background:#2c3e50;color:white;">
+          <th>S.No</th><th>Course Code</th><th>Course Name</th>
+          <th>Total</th><th>Present</th><th>Absent</th><th>%</th>
+        </tr>`;
+    data.forEach((row, index) => {
+      const percent = ((row.present_hours / row.total_hours) * 100).toFixed(1);
+      html += `<tr>
+        <td>${index+1}</td>
+        <td>${row.course_code}</td>
+        <td>${row.course_name}</td>
+        <td>${row.total_hours}</td>
+        <td style="color:green;font-weight:600">${row.present_hours}</td>
+        <td style="color:red;font-weight:600">${row.absent_hours}</td>
+        <td><b>${percent}%</b></td>
+      </tr>`;
     });
+    html += "</table>";
     document.getElementById("attResult").innerHTML = html;
   });
 }
@@ -268,101 +387,136 @@ function loadAttFromSelect() {
 document.getElementById("marksSem").addEventListener("change", loadMarksFromSelect);
 document.getElementById("attSem").addEventListener("change", loadAttFromSelect);
 
-/* Resume */
+/* ===== RESUME ===== */
 let selectedFile = null;
-
-function handleFileSelect(input){
-  if(input.files && input.files[0]) showFile(input.files[0]);
-}
-
+function handleFileSelect(input){ if(input.files && input.files[0]) showFile(input.files[0]); }
 function handleDrop(e){
   e.preventDefault();
   document.getElementById('resumeUploadBox').style.borderColor='#e0e4ef';
   if(e.dataTransfer.files[0]) showFile(e.dataTransfer.files[0]);
 }
-
 function showFile(file){
   selectedFile = file;
   const mb = (file.size/1024/1024).toFixed(2);
-  document.getElementById('fileName').textContent = file.name;
-  document.getElementById('fileSize').textContent = mb + ' MB';
-  document.getElementById('fileInfo').style.display = 'flex';
+  document.getElementById('fileName').textContent  = file.name;
+  document.getElementById('fileSize').textContent  = mb + ' MB';
+  document.getElementById('fileInfo').style.display  = 'flex';
   document.getElementById('uploadBtn').style.display = 'block';
-  document.getElementById('uploadMsg').textContent = '';
+  document.getElementById('uploadMsg').textContent   = '';
 }
-
 function clearFile(){
   selectedFile = null;
   document.getElementById('resumeFile').value = '';
-  document.getElementById('fileInfo').style.display = 'none';
+  document.getElementById('fileInfo').style.display  = 'none';
   document.getElementById('uploadBtn').style.display = 'none';
-  document.getElementById('uploadMsg').textContent = '';
+  document.getElementById('uploadMsg').textContent   = '';
 }
-
 function uploadResume(){
   if(!selectedFile) return;
   const msg = document.getElementById('uploadMsg');
   msg.style.color = 'var(--slate)';
   msg.textContent = 'Uploading...';
-
   const formData = new FormData();
   formData.append('resume', selectedFile);
   formData.append('studentId', id);
-
   fetch('http://localhost:3000/upload-resume', { method:'POST', body: formData })
-  .then(res=>res.json())
-  .then(data=>{
-    if(data.success){
-      msg.style.color = 'var(--success)';
-      msg.textContent = '✅ Resume uploaded successfully!';
-      clearFile();
-    } else {
-      msg.style.color = 'var(--danger)';
-      msg.textContent = '❌ Upload failed. Try again.';
-    }
+  .then(res => res.json())
+  .then(data => {
+    if(data.success){ msg.style.color='var(--success)'; msg.textContent='✅ Resume uploaded successfully!'; clearFile(); }
+    else { msg.style.color='var(--danger)'; msg.textContent='❌ Upload failed. Try again.'; }
   })
-  .catch(()=>{
-    msg.style.color = 'var(--danger)';
-    msg.textContent = '❌ Server not responding.';
-  });
+  .catch(() => { msg.style.color='var(--danger)'; msg.textContent='❌ Server not responding.'; });
 }
 
+/* ===== PRINT MARKS ===== */
 function printMarks(){
   const sem = document.getElementById('marksSem').value;
   const studentName = document.getElementById('headerStudentName').textContent;
   const table = document.getElementById('marksResult').innerHTML;
-
   const win = window.open('','_blank');
   const printStyles = `
-    body { font-family: 'Segoe UI', sans-serif; padding: 30px; color: #0a1628; }
-    h2 { color: #0a1628; margin-bottom: 4px; }
-    p { color: #8892a4; margin-bottom: 20px; font-size: 13px; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #0a1628; color: #c9a84c; padding: 11px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-    td { padding: 11px 14px; border-bottom: 1px solid #eef0f8; font-size: 14px; }
-    tr:hover td { background: #f8f9fc; }
-    .grade-badge { display:inline-block; padding:3px 12px; border-radius:20px; font-weight:700; font-size:13px; }
-    .grade-S { background:#d4f5e2; color:#1a7d47; }
-    .grade-A { background:#dbeafe; color:#1d4ed8; }
-    .grade-B { background:#ede9fe; color:#5b21b6; }
-    .grade-C { background:#fef3c7; color:#92400e; }
-    .grade-D { background:#fee2e2; color:#991b1b; }
-    .footer { margin-top: 30px; font-size: 11px; color: #8892a4; text-align: center; border-top: 1px solid #eef0f8; padding-top: 12px; }
-    @media print { body { padding: 15px; } }
+    body{font-family:'Segoe UI',sans-serif;padding:30px;color:#0a1628;}
+    h2{color:#0a1628;margin-bottom:4px;}
+    p{color:#8892a4;margin-bottom:20px;font-size:13px;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:#0a1628;color:#c9a84c;padding:11px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;}
+    td{padding:11px 14px;border-bottom:1px solid #eef0f8;font-size:14px;}
+    .grade-badge{display:inline-block;padding:3px 12px;border-radius:20px;font-weight:700;font-size:13px;}
+    .grade-S{background:#d4f5e2;color:#1a7d47;} .grade-A{background:#dbeafe;color:#1d4ed8;}
+    .grade-B{background:#ede9fe;color:#5b21b6;} .grade-C{background:#fef3c7;color:#92400e;}
+    .grade-D{background:#fee2e2;color:#991b1b;}
+    .footer{margin-top:30px;font-size:11px;color:#8892a4;text-align:center;border-top:1px solid #eef0f8;padding-top:12px;}
+    @media print{body{padding:15px;}}
   `;
-  win.document.write('<!DOCTYPE html><html><head><title>Semester ' + sem + ' Marks</title><style>' + printStyles + '</style></head><body>');
+  win.document.write('<!DOCTYPE html><html><head><title>Semester '+sem+' Marks</title><style>'+printStyles+'</style></head><body>');
   win.document.write('<h2>Academic Intelligence System</h2>');
-  win.document.write('<p>Student: <b>' + studentName + '</b> &nbsp;|&nbsp; Semester: <b>' + sem + '</b> &nbsp;|&nbsp; Date: ' + new Date().toLocaleDateString() + '</p>');
+  win.document.write('<p>Student: <b>'+studentName+'</b> &nbsp;|&nbsp; Semester: <b>'+sem+'</b> &nbsp;|&nbsp; Date: '+new Date().toLocaleDateString()+'</p>');
   win.document.write(table);
   win.document.write('<div class="footer">Vel Tech Rangarajan Dr. Sagunthala R&D Institute of Science and Technology</div>');
   win.document.write('<\/body><\/html>');
   win.document.close();
   win.focus();
-  setTimeout(()=>{ win.print(); }, 500);
+  setTimeout(() => { win.print(); }, 500);
+}
+
+/* ===== GPA ===== */
+function gradePoint(grade){
+  switch(grade){
+    case 'S': return 10; case 'A': return 9; case 'B': return 8;
+    case 'C': return 7;  case 'D': return 6; default: return null;
+  }
+}
+
+function calculateSGPA(){
+  const sem = document.getElementById("marksSem").value;
+  if(!sem){ alert("Please select a semester first!"); return; }
+  fetch(`http://localhost:3000/results/${id}/${sem}`)
+  .then(res => res.json())
+  .then(data => {
+    const hasRA = data.some(r => r.grade === 'RA' || r.result === 'Fail');
+    if(hasRA){ showGpaCard('sgpa', null, sem, true); return; }
+    const total = data.reduce((sum, r) => sum + (gradePoint(r.grade) || 0), 0);
+    showGpaCard('sgpa', (total / data.length).toFixed(2), sem, false);
+  });
+}
+
+function calculateCGPA(){
+  const sem = document.getElementById("marksSem").value;
+  if(!sem){ alert("Please select a semester first!"); return; }
+  const semCount = parseInt(sem);
+  const promises = [];
+  for(let i = 1; i <= semCount; i++) promises.push(fetch(`http://localhost:3000/results/${id}/${i}`).then(r => r.json()));
+  Promise.all(promises).then(allData => {
+    const hasRA = allData.some(semData => semData.some(r => r.grade === 'RA' || r.result === 'Fail'));
+    if(hasRA){ showGpaCard('cgpa', null, sem, true); return; }
+    let sgpaSum = 0, validSems = 0;
+    allData.forEach(semData => {
+      if(semData.length > 0){
+        const total = semData.reduce((sum, r) => sum + (gradePoint(r.grade) || 0), 0);
+        sgpaSum += total / semData.length;
+        validSems++;
+      }
+    });
+    showGpaCard('cgpa', (sgpaSum / validSems).toFixed(2), sem, false);
+  });
+}
+
+function showGpaCard(type, value, sem, hasArrear){
+  const cards = document.getElementById('gpaCards');
+  cards.innerHTML = '';
+  const isCGPA    = type === 'cgpa';
+  const label     = isCGPA ? `CGPA (Sem 1–${sem})` : `SGPA (Sem ${sem})`;
+  const color     = isCGPA ? 'var(--gold)' : '#1e2d45';
+  const textColor = isCGPA ? 'var(--navy)' : '#fff';
+  const card      = document.createElement('div');
+  card.style.cssText = `background:${color};color:${textColor};border-radius:14px;padding:18px 28px;box-shadow:0 4px 16px rgba(0,0,0,0.15);min-width:180px;text-align:center;animation:tabFadeIn 0.3s ease both;`;
+  card.innerHTML = hasArrear
+    ? `<div style="font-size:11px;font-weight:700;letter-spacing:1px;opacity:0.8;margin-bottom:6px">${label}</div><div style="font-size:13px;font-weight:600;">⚠️ Arrear Detected</div><div style="font-size:11px;opacity:0.75;margin-top:4px">Unable to calculate</div>`
+    : `<div style="font-size:11px;font-weight:700;letter-spacing:1px;opacity:0.8;margin-bottom:6px">${label}</div><div style="font-size:32px;font-weight:800;line-height:1">${value}</div><div style="font-size:11px;opacity:0.75;margin-top:4px">${isCGPA ? 'Cumulative GPA' : 'Semester GPA'}</div>`;
+  cards.appendChild(card);
 }
 
 function logout(){ localStorage.clear(); window.location="login.html"; }
-
 </script>
 </body>
 </html>

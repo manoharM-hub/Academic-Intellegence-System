@@ -5,6 +5,96 @@
 <link rel="stylesheet" href="style.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+/* Glass Radio Group */
+.glass-radio-group {
+  --bg: rgba(0, 0, 0, 0.06);
+  --text: #555555;
+
+  display: flex;
+  position: relative;
+  background: var(--bg);
+  border-radius: 1rem;
+  backdrop-filter: blur(12px);
+  box-shadow:
+    inset 1px 1px 4px rgba(255, 255, 255, 0.5),
+    inset -1px -1px 6px rgba(0, 0, 0, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  width: 100%;
+  margin-bottom: 22px;
+}
+
+.glass-radio-group input {
+  display: none;
+}
+
+.glass-radio-group label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  font-size: 14px;
+  padding: 0.8rem 1.6rem;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--text);
+  position: relative;
+  z-index: 2;
+  transition: color 0.3s ease-in-out;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.glass-radio-group label:hover {
+  color: #111;
+}
+
+.glass-radio-group input:checked + label {
+  color: #111;
+}
+
+.glass-glider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(100% / 3);
+  border-radius: 1rem;
+  z-index: 1;
+  transition:
+    transform 0.5s cubic-bezier(0.37, 1.95, 0.66, 0.56),
+    background 0.4s ease-in-out,
+    box-shadow 0.4s ease-in-out;
+}
+
+/* Student - Silver */
+#glass-student:checked ~ .glass-glider {
+  transform: translateX(0%);
+  background: linear-gradient(135deg, #c0c0c055, #a0d8ff);
+  box-shadow:
+    0 0 18px rgba(192, 192, 192, 0.5),
+    0 0 10px rgba(255, 255, 255, 0.4) inset;
+}
+
+/* Mentor - Gold */
+#glass-mentor:checked ~ .glass-glider {
+  transform: translateX(100%);
+  background: linear-gradient(135deg, #d0e7ff55, #ffcc00);
+  box-shadow:
+    0 0 18px rgba(255, 215, 0, 0.5),
+    0 0 10px rgba(255, 235, 150, 0.4) inset;
+}
+
+/* Parent - Platinum/Blue */
+#glass-parent:checked ~ .glass-glider {
+  transform: translateX(200%);
+  background: linear-gradient(135deg, #d0e7ff55, #a0d8ff);
+  box-shadow:
+    0 0 18px rgba(160, 216, 255, 0.5),
+    0 0 10px rgba(200, 240, 255, 0.4) inset;
+}
+</style>
 </head>
 
 <body class="login-page">
@@ -15,13 +105,21 @@
     <div class="login-logo">
       <div class="emblem">🎓</div>
       <h1>Academic Intelligence<br>System</h1>
-      <p>Secure Portal Access</p>
+      <p>Vel Tech University</p>
     </div>
 
-    <div class="roleButtons" id="roleButtons">
-      <button onclick="selectRole('student')" class="active">Student</button>
-      <button onclick="selectRole('mentor')">Mentor</button>
-      <button onclick="selectRole('parent')">Parent</button>
+    <!-- Glass Radio Role Selector -->
+    <div class="glass-radio-group" id="roleButtons">
+      <input type="radio" name="plan" id="glass-student" checked />
+      <label for="glass-student" onclick="selectRole('student')">Student</label>
+
+      <input type="radio" name="plan" id="glass-mentor" />
+      <label for="glass-mentor" onclick="selectRole('mentor')">Mentor</label>
+
+      <input type="radio" name="plan" id="glass-parent" />
+      <label for="glass-parent" onclick="selectRole('parent')">Parent</label>
+
+      <div class="glass-glider"></div>
     </div>
 
     <div id="note">🎓 Login as Student — Use your VTU ID &amp; DOB as Password</div>
