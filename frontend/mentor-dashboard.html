@@ -60,7 +60,7 @@ const mentorName = localStorage.getItem("mentorName");
 const mentorDesignation = localStorage.getItem("mentorDesignation");
 const mentorDepartment = localStorage.getItem("mentorDepartment");
 
-if(!mentorId){ alert("Login first"); window.location="login.html"; }
+if(!mentorId){ alert("Login first"); window.location="/"; }
 
 document.getElementById("headerMentorName").textContent = mentorName;
 
@@ -706,7 +706,7 @@ function sendChatMessage(){
 /* ===== UTILS ===== */
 function openStudent(id){ localStorage.setItem("viewStudent", id); window.location="mentor-student.html"; }
 function openResume(file){ window.open("https://academic-intellegence-system-production.up.railway.app/uploads/" + file); }
-function logout(){ localStorage.clear(); window.location="login.html"; }
+function logout(){ localStorage.clear(); window.location="/"; }
 
 </script>
 </body>

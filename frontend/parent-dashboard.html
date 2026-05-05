@@ -56,7 +56,7 @@
 <script>
 
 const id = localStorage.getItem("parentId");
-if(!id){ alert("Session expired."); window.location="login.html"; }
+if(!id){ alert("Session expired."); window.location="/"; }
 
 const content = document.getElementById("contentArea");
 
@@ -73,7 +73,7 @@ fetch("https://academic-intellegence-system-production.up.railway.app/student/" 
   }
 });
 
-function logout(){ localStorage.removeItem("parentId"); window.location="login.html"; }
+function logout(){ localStorage.removeItem("parentId"); window.location="/"; }
 
 /* ===== PROGRESS ===== */
 function showProgress(){

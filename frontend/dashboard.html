@@ -165,7 +165,7 @@
 
 <script>
 const id = localStorage.getItem("studentId");
-if(!id){ alert("Login again"); window.location="login.html"; }
+if(!id){ alert("Login again"); window.location="/"; }
 
 /* ===== LOAD STUDENT INFO ===== */
 fetch("https://academic-intellegence-system-production.up.railway.app/student/" + id)
@@ -516,7 +516,7 @@ function showGpaCard(type, value, sem, hasArrear){
   cards.appendChild(card);
 }
 
-function logout(){ localStorage.clear(); window.location="login.html"; }
+function logout(){ localStorage.clear(); window.location="/"; }
 </script>
 </body>
 </html>
